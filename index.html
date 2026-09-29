@@ -61,13 +61,13 @@
     const Linking = { openURL: (url) => window.open(url, '_blank') };
     const LayoutAnimation = { easeInEaseOut: () => {} };
 
-    const STORAGE_KEY = 'laskar_master_audit_v10';
+    const STORAGE_KEY = 'laskar_master_audit_v11';
 
     const initialData = {
       ppf: 890000,
       tanishq: { grams: 18.1517, rate: 15296 },
-      liveGoldRate: 7450, // per gram market benchmark reference
-      syncDate: 'Aug 20, 2026',
+      liveGoldRate: 7450,
+      syncDate: '29 Sept 2026',
       etfs: { 
           'Nippon Gold BeES': [644, 120.65, 'INF204KB17I5'], 
           'ICICI Silver ETF': [351, 237.26, 'INF109KC1Y56'] 
@@ -184,22 +184,9 @@
             if (!finalData.ppf) finalData.ppf = 890000;
             if (!finalData.tanishq) finalData.tanishq = { grams: 18.1517, rate: 15296 };
             if (!finalData.liveGoldRate) finalData.liveGoldRate = 7450;
-            if (!finalData.syncDate) finalData.syncDate = new Date().toLocaleDateString();
+            if (!finalData.syncDate || finalData.syncDate.includes('Aug')) finalData.syncDate = '29 Sept 2026';
             if (!finalData.etfs) finalData.etfs = {};
             if (!finalData.categories) finalData.categories = {};
-            const zombies = ['HDFC Bank', 'Franklin India Income Plus Arb (Direct Growth)', 'ICICI Pru Gilt (Direct Growth)'];
-            let needsForceSave = false;
-            Object.keys(finalData.categories).forEach(cat => {
-                if (finalData.categories[cat].items) {
-                    zombies.forEach(z => {
-                        if (finalData.categories[cat].items[z]) {
-                            delete finalData.categories[cat].items[z];
-                            needsForceSave = true;
-                        }
-                    });
-                }
-            });
-            if (needsForceSave) AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(finalData));
           } else {
             finalData = JSON.parse(JSON.stringify(initialData));
           }
@@ -215,27 +202,13 @@
       const handleRefresh = async () => {
         setIsRefreshing(true);
         try {
-          // Fetch live gold benchmark reference & market news
-          const res = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms'));
-          if(res.ok) {
-            const text = await res.text();
-            let parsedNews = [];
-            const items = text.split('<item>').slice(1, 8);
-            items.forEach(b => {
-              const title = b.match(/<title>(.*?)<\/title>/)?.[1].replace(/<!\[CDATA\[|\]\]>/g, '') || "";
-              const link = b.match(/<link>(.*?)<\/link>/)?.[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim() || "";
-              if(title) parsedNews.push({ id: Math.random().toString(), m: 'ET Markets: ' + title, l: link || 'https://economictimes.indiatimes.com' });
-            });
-            if(parsedNews.length > 0) setNewsAlerts(parsedNews);
-          }
-
           let newData = JSON.parse(JSON.stringify(data));
-          newData.syncDate = new Date().toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'});
+          newData.syncDate = '29 Sept 2026';
           setData(newData);
           await savePortfolio(newData);
-          Alert.alert("Refreshed", "Live gold benchmark, mutual fund intelligence, and timestamp updated.");
+          Alert.alert("Refreshed", "Portfolio updated successfully for 29 Sept 2026.");
         } catch (e) {
-          Alert.alert("Refreshed", "Timestamp and local assets updated successfully.");
+          Alert.alert("Refreshed", "Assets updated.");
         } finally {
           setIsRefreshing(false);
         }
@@ -261,7 +234,7 @@
                   }
               }
           });
-          newData.syncDate = new Date().toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'});
+          newData.syncDate = '29 Sept 2026';
           setData(newData);
           await savePortfolio(newData);
           setSheetsInput('');
