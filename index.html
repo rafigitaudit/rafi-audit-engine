@@ -61,7 +61,7 @@
     const Linking = { openURL: (url) => window.open(url, '_blank') };
     const LayoutAnimation = { easeInEaseOut: () => {} };
 
-    const STORAGE_KEY = 'laskar_master_audit_v16';
+    const STORAGE_KEY = 'laskar_master_audit_v17';
 
     const initialData = {
       ppf: 890000,
@@ -179,9 +179,22 @@
         try {
           let newData = JSON.parse(JSON.stringify(data));
           
-          // Auto-fetch live Gold 24K, 22K and Silver benchmark rates from goldprice.org via CORS proxy
+          const fetchWithTimeout = async (url, timeout = 5000) => {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            try {
+              const res = await fetch(url, { signal: controller.signal });
+              clearTimeout(id);
+              return res;
+            } catch (err) {
+              clearTimeout(id);
+              throw err;
+            }
+          };
+
+          // 1. Fetch Gold/Silver
           try {
-            const goldRes = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://data-asg.goldprice.org/dbXRates/INR'));
+            const goldRes = await fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://data-asg.goldprice.org/dbXRates/INR'));
             if(goldRes.ok) {
               const goldJson = await goldRes.json();
               if(goldJson && goldJson.items && goldJson.items[0]) {
@@ -197,37 +210,44 @@
                 }
               }
             }
-          } catch(err) { console.log("Metal benchmark fetch fallback active"); }
+          } catch(err) { console.log("Gold fetch timeout/fallback"); }
 
-          // Auto-fetch Mutual Fund NAVs using ISIN codes via CORS proxy (allorigins.win) + mfapi.in
+          // 2. Fetch Mutual Funds concurrently with timeout
           const mfCategories = ['Equity Mutual Funds', 'Debt Mutual Funds', 'Hybrid Funds'];
+          let fetchPromises = [];
+
           for (let catKey of mfCategories) {
             if (newData.categories[catKey] && newData.categories[catKey].items) {
               for (let [itemName, itemVals] of Object.entries(newData.categories[catKey].items)) {
                 const isin = itemVals[2];
                 if (isin && isin.trim() !== '') {
-                  try {
-                    const proxyUrl = `https://api.allorigins.win/raw?url=` + encodeURIComponent(`https://api.mfapi.in/mf/${isin}`);
-                    const navRes = await fetch(proxyUrl);
-                    if (navRes.ok) {
-                      const navJson = await navRes.json();
-                      if (navJson && navJson.data && navJson.data.length > 0) {
-                        const latestNav = parseFloat(navJson.data[0].nav);
-                        if (!isNaN(latestNav)) {
-                          newData.categories[catKey].items[itemName][1] = latestNav;
+                  const p = (async () => {
+                    try {
+                      const proxyUrl = `https://api.allorigins.win/raw?url=` + encodeURIComponent(`https://api.mfapi.in/mf/${isin}`);
+                      const navRes = await fetchWithTimeout(proxyUrl, 5000);
+                      if (navRes.ok) {
+                        const navJson = await navRes.json();
+                        if (navJson && navJson.data && navJson.data.length > 0) {
+                          const latestNav = parseFloat(navJson.data[0].nav);
+                          if (!isNaN(latestNav)) {
+                            newData.categories[catKey].items[itemName][1] = latestNav;
+                          }
                         }
                       }
-                    }
-                  } catch(mfErr) { console.log(`Could not fetch NAV for ${itemName}`); }
+                    } catch(mfErr) { console.log(`Skipped ${itemName}`); }
+                  })();
+                  fetchPromises.push(p);
                 }
               }
             }
           }
 
+          await Promise.allSettled(fetchPromises);
+
           newData.syncDate = new Date().toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'});
           setData(newData);
           await savePortfolio(newData);
-          Alert.alert("Refreshed", "Mutual Fund NAVs, live gold (24K/22K) & silver rates updated successfully!");
+          Alert.alert("Refreshed", "Live rates & mutual fund NAVs updated successfully!");
         } catch (e) {
           Alert.alert("Refreshed", "Live sync completed.");
         } finally {
