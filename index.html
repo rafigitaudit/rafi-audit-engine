@@ -61,7 +61,7 @@
     const Linking = { openURL: (url) => window.open(url, '_blank') };
     const LayoutAnimation = { easeInEaseOut: () => {} };
 
-    const STORAGE_KEY = 'laskar_master_audit_v13';
+    const STORAGE_KEY = 'laskar_master_audit_v15';
 
     const initialData = {
       ppf: 890000,
@@ -71,53 +71,66 @@
       physicalSilver: { grams: 0, rate: 90 },
       syncDate: '29 Sept 2026',
       etfs: { 
-          'Nippon Gold BeES': [644, 120.64, 'INF204KB17I5'], 
-          'ICICI Silver ETF': [351, 218.51, 'INF109KC1Y56'] 
+          'Nippon Gold BeES': [644, 121.22, 'INF204KB17I5'], 
+          'ICICI Silver ETF': [351, 220.20, 'INF109KC1Y56'] 
       },
       categories: {
         'Direct Stocks': { type: 'Shrs', items: { 
-            'Adani Ports': [25, 1822.00, 'INE742F01042'], 
-            'Anantraj': [51, 602.35, 'INE242C01024'], 
-            'BEL': [110, 387.75, 'INE263A01024'], 
-            'Bharti Airtel': [25, 1776.00, 'INE397D01024'], 
-            'Cipla': [21, 1383.00, 'INE059A01026'], 
-            'Coforge': [6, 1722.00, 'INE591G01025'], 
-            'Deepak Nitrite': [20, 1529.00, 'INE288B01029'], 
-            'DLF': [45, 660.00, 'INE271C01023'], 
-            'Nippon Gold BeES (Stock)': [703, 120.64, 'INF204KB17I5'], 
-            'HAL': [21, 4670.00, 'INE066F01020'], 
-            'HCG': [132, 703.60, 'INE075I01017'], 
-            'ICICI Lombard': [20, 1515.00, 'INE765G01017'], 
-            'IndiaMart': [23, 1614.05, 'INE933S01016'], 
-            'IndiGo': [14, 4880.00, 'INE646L01027'], 
-            'IREDA': [151, 111.20, 'INE202E01016'], 
-            'ITC Hotels': [287, 160.53, 'INE379A01028'], 
-            'JioFin': [275, 217.90, 'INE758E01017'], 
-            'L&T': [41, 3751.00, 'INE018A01030'], 
-            'NAM-India': [41, 1068.90, 'INE298J01013'], 
-            'Naukri': [49, 1250.00, 'INE663F01032'], 
-            'NH': [21, 1803.20, 'INE410P01011'], 
-            'Rainbow': [25, 1368.30, 'INE961O01016'], 
-            'Reliance': [181, 1184.00, 'INE002A01018'], 
-            'ICICI Silver ETF (Stock)': [351, 218.51, 'INF109KC1Y56'], 
-            'Tata Power': [221, 359.00, 'INE245A01021'], 
-            'United Spirits': [15, 1365.00, 'INE854D01024'], 
-            'Urbanco': [147, 163.71, 'INE0CAZ01013'], 
-            'Zen Tech': [41, 1619.80, 'INE251B01027'] 
+            'Reliance': [181, 1198.50, 'INF002A01018'], 
+            'JioFin': [273, 220.50, 'INE758E01017'], 
+            'Tata Power': [221, 362.00, 'INE245A01021'], 
+            'ITC Hotels': [211, 158.57, 'INE379A01028'], 
+            'IREDA': [151, 114.95, 'INE202E01016'], 
+            'HCG': [127, 692.35, 'INE075I01017'], 
+            'BEL': [76, 386.00, 'INE263A01024'], 
+            'Anantraj': [51, 608.05, 'INE242C01024'], 
+            'L&T': [41, 3770.00, 'INE018A01030'], 
+            'Zen Tech': [41, 1643.55, 'INE251B01027'], 
+            'NAM-India': [33, 1097.95, 'INE298J01013'], 
+            'DLF': [31, 664.00, 'INE271C01023'], 
+            'Rainbow': [25, 1373.30, 'INE961O01016'], 
+            'HAL': [21, 4739.00, 'INE066F01020'], 
+            'Adani Ports': [21, 1743.70, 'INE742F01042'], 
+            'NH': [17, 1820.10, 'INE410P01011'], 
+            'Cipla': [15, 1388.90, 'INE059A01026'], 
+            'Naukri': [15, 1253.90, 'INE663F01032'], 
+            'IndiGo': [14, 4874.50, 'INE646L01027'], 
+            'Bharti Airtel': [12, 1771.80, 'INE397D01024'], 
+            'United Spirits': [12, 1415.40, 'INE854D01024'], 
+            'Deepak Nitrite': [11, 1551.05, 'INE288B01029'], 
+            'ICICI Lombard': [10, 1543.00, 'INE765G01017'], 
+            'IndiaMart': [10, 1637.00, 'INE933S01016'], 
+            'Coforge': [2, 1773.00, 'INE591G01025'] 
+        } },
+        'Debt Mutual Funds': { type: 'Units', items: { 
+            'ABSL Medium Term (Direct Growth)': [7311.07, 46.18, 'INF209K01XA9'], 
+            'ICICI Pru Arb (Direct Growth)': [6633.06, 38.55, 'INF109K01W82'], 
+            'Nippon India Corp Bond (Direct Growth)': [3755.70, 65.41, 'INF204K01C15'], 
+            'SBI Arbitrage (Direct Growth)': [7390.35, 37.72, 'INF200K01QU0'], 
+            'ICICI Pru Short Term (Direct Growth)': [2148.11, 68.45, 'INF109K013N3'], 
+            'SBI Dynamic Bond (Direct Growth)': [3043.40, 40.13, 'INF200K01RD4'], 
+            'HDFC Arbitrage (Direct Growth)': [3275.61, 31.98, 'INF179KA1SC5'], 
+            'Kotak Equity Savings (Direct Growth)': [827.42, 28.87, 'INF174K01D28'],
+            'Edelweiss Liquid Fund Direct Growth': [0, 3657.21, 'INF754K01GM4'] 
         } },
         'Equity Mutual Funds': { type: 'Units', items: { 
-            'DSP Small Cap (Direct Growth)': [547.705, 253.671, 'INF740K01QD1'], 
-            'Parag Parikh Flexi (Direct Growth)': [1266.01, 89.958, 'INF879O01027'], 
-            'HDFC Mid-Cap (Direct Growth)': [517.145, 223.172, 'INF179K01XQ0'], 
-            'Invesco Multicap (Direct Growth)': [520.56, 154.50, 'INF205K01MS2'], 
-            'Edelweiss US Tech (Direct Growth)': [2050.109, 42.5002, 'INF754K01LB7'], 
-            'UTI Nifty 50 Index (Direct Growth)': [335.777, 160.4204, 'INF789F01XA0'], 
-            'ICICI Pru Large (Direct Growth)': [470.004, 113.83, 'INF109K016L0'], 
-            'Motilal Nasdaq 100 (Direct Growth)': [590.053, 68.3183, 'INF247L01718'], 
-            'Franklin U.S. Opportunities Active FoF Direct Growth': [478.248, 107.8591, 'INF090I01JR0']
+            'Axis ELSS (Direct Growth)': [1814.13, 97.72, 'INF846K01EW2'], 
+            'Axis ELSS (Regular Growth)': [0.0, 90.15, 'INF846K01131'], 
+            'DSP Small Cap (Direct Growth)': [564.38, 256.991, 'INF740K01QD1'], 
+            'Parag Parikh Flexi (Direct Growth)': [1120.81, 89.958, 'INF879O01027'], 
+            'HDFC Mid-Cap (Direct Growth)': [607.20, 226.38, 'INF179K01XQ0'], 
+            'Invesco Multicap (Direct Growth)': [892.64, 156.80, 'INF205K01MS2'], 
+            'Edelweiss US Tech (Direct Growth)': [1175.66, 42.5002, 'INF754K01LB7'], 
+            'UTI Nifty 50 Index (Direct Growth)': [260.71, 162.9607, 'INF789F01XA0'], 
+            'ICICI Pru Large (Direct Growth)': [373.65, 115.57, 'INF109K016L0'], 
+            'Motilal Nasdaq 100 (Direct Growth)': [184.62, 68.3721, 'INF247L01718'], 
+            'Axis Global Alpha (Direct Growth)': [1058.20, 23.16, 'INF846K01X06'], 
+            'SBI Large & Midcap (Direct Growth)': [20.06, 640.79, 'INF200K01UJ5'],
+            'Franklin U.S. Opportunities Active FoF Direct Growth': [145.88, 107.8591, 'INF090I01JR0']
         } },
-        'Debt Mutual Funds': { type: 'Units', items: {} },
-        'Hybrid Funds': { type: 'Units', items: {} }
+        'Hybrid Funds': { type: 'Units', items: { 
+            'ICICI Prudential Balanced Advantage Fund Direct Growth': [0, 89.59, 'INF109K012B0'] 
+        } }
       }
     };
 
