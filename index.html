@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, apple-mobile-web-app-capable=yes, apple-mobile-web-app-status-bar-style=black-translucent">
+  <title>Rafi Audit Engine</title>
+  
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    body { margin: 0; padding: 0; background-color: #f4f7f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
+    * { box-sizing: border-box; }
+    input, textarea { font-family: inherit; }
+    ::-webkit-scrollbar { display: none; }
+    #root { height: 100vh; display: flex; flex-direction: column; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const View = ({style, children}) => <div style={{display: 'flex', flexDirection: 'column', ...style}}>{children}</div>;
+    const ScrollView = ({style, children}) => <div style={{flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', ...style}}>{children}</div>;
+    const SafeAreaView = ({style, children}) => <div style={{flex: 1, display: 'flex', flexDirection: 'column', ...style}}>{children}</div>;
+    const Text = ({style, children}) => <span style={{display: 'inline-block', ...style}}>{children}</span>;
+    const TouchableOpacity = ({style, onPress, children}) => <div onClick={onPress} style={{cursor: 'pointer', display: 'flex', flexDirection: 'column', ...style}}>{children}</div>;
+    const ActivityIndicator = () => <span style={{color: 'white', fontSize: 12}}>Loading...</span>;
+    const StatusBar = () => null;
+    
+    const TextInput = ({style, placeholder, value, onChangeText, multiline, keyboardType, onEndEditing, defaultValue}) => {
+      const commonProps = {
+        style: { width: '100%', ...style },
+        placeholder: placeholder,
+        value: value !== undefined ? value : defaultValue,
+        onChange: (e) => onChangeText && onChangeText(e.target.value),
+        onBlur: (e) => onEndEditing && onEndEditing({nativeEvent: {text: e.target.value}})
+      };
+      if (multiline) return <textarea {...commonProps} rows="4" />;
+      return <input type={keyboardType === 'numeric' ? 'number' : 'text'} {...commonProps} />;
+    };
+
+    const AsyncStorage = {
+      getItem: (key) => Promise.resolve(localStorage.getItem(key)),
+      setItem: (key, val) => Promise.resolve(localStorage.setItem(key, val))
+    };
+
+    const Alert = {
+      alert: (title, msg, buttons) => {
+        if(buttons && buttons.length > 1) {
+          if(window.confirm(`${title}\n\n${msg}`)) buttons.find(b => b.style === 'destructive' || b.text === 'Delete')?.onPress();
+        } else {
+          window.alert(`${title}\n\n${msg}`);
+        }
+      }
+    };
+
+    const Linking = { openURL: (url) => window.open(url, '_blank') };
+    const LayoutAnimation = { easeInEaseOut: () => {} };
+
+    const STORAGE_KEY = 'laskar_master_audit_v10';
+
+    const initialData = {
+      ppf: 890000,
+      tanishq: { grams: 18.1517, rate: 15296 },
+      syncDate: 'Aug 20, 2026',
+      etfs: { 
+          'Nippon Gold BeES': [644, 120.65, 'INF204KB17I5'], 
+          'ICICI Silver ETF': [351, 237.26, 'INF109KC1Y56'] 
+      },
+      categories: {
+        'Physical Gold': { type: 'Value', items: { 'Additional Physical Gold': [1, 581000, ''] } },
+        'Direct Stocks': { type: 'Shrs', items: { 
+            'Reliance': [181, 1350.90, 'INE002A01018'], 
+            'JioFin': [273, 229.48, 'INE758E01017'], 
+            'Tata Power': [221, 385.00, 'INE245A01021'], 
+            'ITC Hotels': [211, 148.09, 'INE379A01028'], 
+            'IREDA': [151, 114.94, 'INE202E01016'], 
+            'HCG': [127, 526.00, 'INE075I01017'], 
+            'BEL': [76, 421.60, 'INE263A01024'], 
+            'Anantraj': [51, 450.40, 'INE242C01024'], 
+            'L&T': [41, 3621.00, 'INE018A01030'], 
+            'Zen Tech': [41, 1367.20, 'INE251B01027'], 
+            'NAM-India': [33, 830.00, 'INE298J01013'], 
+            'DLF': [31, 521.00, 'INE271C01023'], 
+            'Rainbow': [25, 1182.30, 'INE961O01016'], 
+            'HAL': [21, 3680.50, 'INE066F01020'], 
+            'Adani Ports': [21, 1380.00, 'INE742F01042'], 
+            'NH': [17, 1625.00, 'INE410P01011'], 
+            'Cipla': [15, 1195.00, 'INE059A01026'], 
+            'Naukri': [15, 987.50, 'INE663F01032'], 
+            'IndiGo': [14, 4170.00, 'INE646L01027'], 
+            'Bharti Airtel': [12, 1792.00, 'INE397D01024'], 
+            'United Spirits': [12, 1221.20, 'INE854D01024'], 
+            'Deepak Nitrite': [11, 1375.00, 'INE288B01029'], 
+            'ICICI Lombard': [10, 1693.00, 'INE765G01017'], 
+            'IndiaMart': [10, 2011.00, 'INE933S01016'], 
+            'Coforge': [2, 1207.40, 'INE591G01025'] 
+        } },
+        'Debt Mutual Funds': { type: 'Units', items: { 
+            'ABSL Medium Term (Direct Growth)': [7311.07, 46.18, 'INF209K01XA9'], 
+            'ICICI Pru Arb (Direct Growth)': [6633.06, 38.55, 'INF109K01W82'], 
+            'Nippon India Corp Bond (Direct Growth)': [3755.70, 65.41, 'INF204K01C15'], 
+            'SBI Arbitrage (Direct Growth)': [7390.35, 37.72, 'INF200K01QU0'], 
+            'ICICI Pru Short Term (Direct Growth)': [2148.11, 68.45, 'INF109K013N3'], 
+            'SBI Dynamic Bond (Direct Growth)': [3043.40, 40.13, 'INF200K01RD4'], 
+            'HDFC Arbitrage (Direct Growth)': [3275.61, 31.98, 'INF179KA1SC5'], 
+            'Kotak Equity Savings (Direct Growth)': [827.42, 28.87, 'INF174K01D28'],
+            'Edelweiss Liquid Fund Direct Growth': [0, 3657.21, 'INF754K01GM4'] 
+        } },
+        'Equity Mutual Funds': { type: 'Units', items: { 
+            'Axis ELSS (Direct Growth)': [1814.13, 97.72, 'INF846K01EW2'], 
+            'Axis ELSS (Regular Growth)': [0.0, 90.15, 'INF846K01131'], 
+            'DSP Small Cap (Direct Growth)': [564.38, 199.61, 'INF740K01QD1'], 
+            'Parag Parikh Flexi (Direct Growth)': [1120.81, 86.34, 'INF879O01027'], 
+            'HDFC Mid-Cap (Direct Growth)': [607.20, 183.29, 'INF179K01XQ0'], 
+            'Invesco Multicap (Direct Growth)': [892.64, 132.43, 'INF205K01MS2'], 
+            'Edelweiss US Tech (Direct Growth)': [1175.66, 32.21, 'INF754K01LB7'], 
+            'UTI Nifty 50 Index (Direct Growth)': [260.71, 158.54, 'INF789F01XA0'], 
+            'ICICI Pru Large (Direct Growth)': [373.65, 111.57, 'INF109K016L0'], 
+            'Motilal Nasdaq 100 (Direct Growth)': [184.62, 238.57, 'INF247L01718'], 
+            'Axis Global Alpha (Direct Growth)': [1058.20, 23.16, 'INF846K01X06'], 
+            'SBI Large & Midcap (Direct Growth)': [20.06, 640.79, 'INF200K01UJ5'],
+            'Franklin U.S. Opportunities Active FoF Direct Growth': [145.88, 104.17, 'INF090I01JR0']
+        } },
+        'Hybrid Funds': { type: 'Units', items: { 
+            'ICICI Prudential Balanced Advantage Fund Direct Growth': [0, 89.59, 'INF109K012B0'] 
+        } }
+      }
+    };
+
+    const universalISINMap = {
+      'absl medium term': 'INF209K01XA9',
+      'icici pru arb': 'INF109K01W82',
+      'nippon india corp bond': 'INF204K01C15',
+      'sbi arbitrage': 'INF200K01QU0',
+      'icici pru short term': 'INF109K013N3',
+      'sbi dynamic bond': 'INF200K01RD4',
+      'hdfc arbitrage': 'INF179KA1SC5',
+      'kotak equity savings': 'INF174K01D28',
+      'edelweiss liquid': 'INF754K01GM4',
+      'axis elss (direct': 'INF846K01EW2',
+      'axis elss (regular': 'INF846K01131',
+      'dsp small cap': 'INF740K01QD1',
+      'parag parikh flexi': 'INF879O01027',
+      'hdfc mid-cap': 'INF179K01XQ0',
+      'invesco multicap': 'INF205K01MS2',
+      'edelweiss us tech': 'INF754K01LB7',
+      'uti nifty 50 index': 'INF789F01XA0',
+      'icici pru large': 'INF109K016L0',
+      'motilal nasdaq 100': 'INF247L01718',
+      'axis global alpha': 'INF846K01X06',
+      'sbi large & midcap': 'INF200K01UJ5',
+      'franklin u.s. opportunities': 'INF090I01JR0',
+      'icici prudential balanced advantage': 'INF109K012B0',
+      'icici pru balanced advantage': 'INF109K012B0',
+      'icici pru balance advantage': 'INF109K012B0'
+    };
+
+    function App() {
+      const [activeTab, setActiveTab] = useState('Dashboard');
+      const [showValue, setShowValue] = useState(true);
+      const [isSyncing, setIsSyncing] = useState(false);
+      const [openHoldings, setOpenHoldings] = useState(null);
+      const [openEdit, setOpenEdit] = useState(null);
+      const [newsAlerts, setNewsAlerts] = useState([]);
+      const [sheetsInput, setSheetsInput] = useState('');
+      const [newCatName, setNewCatName] = useState('');
+      const [data, setData] = useState(initialData);
+
+      useEffect(() => { 
+        AsyncStorage.getItem(STORAGE_KEY).then(s => {
+          let finalData;
+          if (s) {
+            finalData = JSON.parse(s);
+            if (!finalData.ppf) finalData.ppf = 890000;
+            if (!finalData.tanishq) finalData.tanishq = { grams: 18.1517, rate: 15296 };
+            if (!finalData.syncDate) finalData.syncDate = new Date().toLocaleDateString();
+            if (!finalData.etfs) finalData.etfs = {};
+            if (!finalData.categories) finalData.categories = {};
+            const zombies = ['HDFC Bank', 'Franklin India Income Plus Arb (Direct Growth)', 'ICICI Pru Gilt (Direct Growth)'];
+            let needsForceSave = false;
+            Object.keys(finalData.categories).forEach(cat => {
+                if (finalData.categories[cat].items) {
+                    zombies.forEach(z => {
+                        if (finalData.categories[cat].items[z]) {
+                            delete finalData.categories[cat].items[z];
+                            needsForceSave = true;
+                        }
+                    });
+                }
+            });
+            Object.keys(finalData.categories).forEach(cat => {
+                if (finalData.categories[cat].items) {
+                    Object.keys(finalData.categories[cat].items).forEach(key => {
+                        const lowerName = key.toLowerCase();
+                        for (const [searchKey, mappedIsin] of Object.entries(universalISINMap)) {
+                            if (lowerName.includes(searchKey)) {
+                                finalData.categories[cat].items[key][2] = mappedIsin;
+                                break;
+                            }
+                        }
+                    });
+                }
+            });
+            if (needsForceSave) AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(finalData));
+          } else {
+            finalData = JSON.parse(JSON.stringify(initialData));
+          }
+          setData(finalData);
+        });
+      }, []);
+
+      const savePortfolio = async (updatedData) => {
+        try { await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedData)); } 
+        catch (e) { Alert.alert("Error", "Save failed."); }
+      };
+
+      const exportToPDF = async () => {
+        const formatCurrency = (val) => `₹${Number(val || 0).toLocaleString('en-IN', {maximumFractionDigits: 0})}`;
+        const htmlContent = `
+          <html>
+            <head><title>Audit Report</title><style>body { font-family: Helvetica, Arial, sans-serif; padding: 20px; } h1 { color: #004d40; border-bottom: 2px solid #004d40; padding-bottom: 10px;} table { width: 100%; border-collapse: collapse; margin-top: 20px; } th { background-color: #f2f2f2; padding: 10px; text-align: left; } td { border-bottom: 1px solid #ddd; padding: 10px; }</style></head>
+            <body>
+              <h1>Asset Audit Report</h1><p>Generated: ${new Date().toLocaleDateString()}</p><h3>Total Net Worth: ${formatCurrency(totalNetWorth)}</h3>
+              <table>
+                <tr><th>Asset</th><th>Units/Qty</th><th>Price/NAV</th><th>Value</th></tr>
+                <tr><td><b>Gold (24K)</b></td><td>${Number(data.tanishq.grams || 0).toFixed(2)}g</td><td>${data.tanishq.rate || 0}</td><td>${formatCurrency(Number(data.tanishq.grams || 0) * Number(data.tanishq.rate || 0))}</td></tr>
+                <tr><td><b>PPF</b></td><td>-</td><td>-</td><td>${formatCurrency(data.ppf)}</td></tr>
+                ${Object.entries(data.etfs).map(([name, v]) => `<tr><td>${name}</td><td>${v[0] || 0}</td><td>${v[1] \vert{}\vert{} 0}</td><td>${formatCurrency((v[0] || 0)*(v[1] || 0))}</td></tr>`).join('')}
+                ${Object.entries(data.categories).map(([cat, c]) => Object.entries(c.items).map(([k, v]) => `<tr><td>${k}</td><td>${v[0] || 0}</td><td>${v[1] \vert{}\vert{} 0}</td><td>${formatCurrency((v[0] || 0)*(v[1] || 0))}</td></tr>`).join('')).join('')}
+              </table>
+              <script>window.onload = function() { window.print(); window.close(); }<\/script>
+            </body>
+          </html>
+        `;
+        const printWindow = window.open('', '_blank');
+        if (printWindow) { printWindow.document.write(htmlContent); printWindow.document.close(); } 
+        else { Alert.alert("Pop-up Blocked", "Please allow pop-ups to generate PDF."); }
+      };
+
+      const performBulkSync = async () => {
+        setIsSyncing(true);
+        try {
+          const amfiUrl = `https://www.amfiindia.com/spages/NAVAll.txt?t=${new Date().getTime()}`;
+          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(amfiUrl)}`;
+          const res = await fetch(proxyUrl);
+          if (!res.ok) throw new Error("HTTP Status " + res.status);
+          const text = await res.text();
+          let newData = JSON.parse(JSON.stringify(data));
+          let isinMatchCount = 0;
+          let debugHUD = { lastIsinSearched: "None", matchFound: false, extractedNAV: "None" };
+
+          const runSync = (list) => {
+            Object.keys(list).forEach(name => {
+              if (name === 'Nippon Gold BeES' || name === 'ICICI Silver ETF') return;
+              let isin = list[name][2]; 
+              const lowerName = name.toLowerCase();
+              for (const [key, mappedIsin] of Object.entries(universalISINMap)) {
+                  if (lowerName.includes(key)) { isin = mappedIsin; list[name][2] = isin; break; }
+              }
+              if (!isin || isin.trim() === '') return;
+              const safeIsin = isin.trim();
+              debugHUD.lastIsinSearched = safeIsin;
+              const regex = new RegExp(`^.*${safeIsin}.*$`, 'im');
+              const rawMatch = text.match(regex);
+              
+              if (rawMatch) {
+                  debugHUD.matchFound = true;
+                  const matchedLine = rawMatch[0];
+                  const delimiter = matchedLine.includes(';') ? ';' : ',';
+                  const parts = matchedLine.split(delimiter);
+                  if (parts.length >= 4) {
+                      let navIndex = parts.length - 2;
+                      let navStr = parts[navIndex] ? parts[navIndex].replace(/[^0-9.]/g, '') : '';
+                      let parsedNav = parseFloat(navStr);
+                      debugHUD.extractedNAV = parsedNav;
+                      if (!isNaN(parsedNav) && parsedNav > 0) { list[name][1] = parsedNav; isinMatchCount++; }
+                  }
+              }
+            });
+          };
+
+          Object.values(newData.categories).forEach(cat => cat.items && runSync(cat.items));
+          runSync(newData.etfs);
+
+          const newsSources = [
+            'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms',
+            'https://www.livemint.com/rss/markets',
+            'https://www.moneycontrol.com/rss/marketnews.xml',
+            'https://www.cnbctv18.com/commonfeeds/v1/rss/market.xml'
+          ];
+          const allNews = [];
+          const excludedFromAlerts = ['Nippon Gold BeES', 'ICICI Silver ETF'];
+          const keywords = [...Object.keys(newData.etfs), ...Object.values(newData.categories).flatMap(c => Object.keys(c.items))].filter(name => !excludedFromAlerts.includes(name)).map(n => n.split(' ')[0].toUpperCase());
+          
+          for (let url of newsSources) {
+            try {
+              const nRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
+              const nText = await nRes.text();
+              const items = nText.split('<item>').slice(1, 10);
+              items.forEach(b => {
+                const title = b.match(/<title>(.*?)<\/title>/)?.[1].replace(/<!\[CDATA\[\vert{}\]\]>/g, '') || "";
+                const link = b.match(/<link>(.*?)<\/link>/)?.[1].replace(/<!\[CDATA\[\vert{}\]\]>/g, '').trim() || "";
+                if (keywords.some(k => title.toUpperCase().includes(k))) allNews.push({ id: Math.random().toString(), m: title, l: link });
+              });
+            } catch (e) {}
+          }
+          setNewsAlerts(allNews.slice(0, 15));
+          newData.syncDate = new Date().toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'});
+          setData(newData);
+          await savePortfolio(newData);
+          
+          if (isinMatchCount > 0) Alert.alert("Sync Success", `Updated NAV for ${isinMatchCount} Mutual Funds & fetched Market News.`);
+          else Alert.alert("Sync Diagnostics", `Checked ISIN: ${debugHUD.lastIsinSearched}\nFound? ${debugHUD.matchFound}`);
+        } catch (e) { Alert.alert("Sync Error", "Could not connect to servers."); } 
+        finally { setIsSyncing(false); }
+      };
+
+      const syncFromSheets = async () => {
+        if (!sheetsInput || sheetsInput.trim() === "") { Alert.alert("Error", "Sync box is empty."); return; }
+        try {
+          let newData = JSON.parse(JSON.stringify(data));
+          const rows = sheetsInput.split('\n').filter(r => r.trim() !== '');
+          let count = 0;
+          rows.forEach(row => {
+              let name = ''; let priceStr = '';
+              if (row.includes('\t')) { const parts = row.split('\t'); name = parts[0].trim(); priceStr = parts[1]; } 
+              else { const match = row.match(/^(.*?)\s+([0-9.,]+)$/); if (match) { name = match[1].trim(); priceStr = match[2]; } }
+              if (name && priceStr) {
+                  const price = parseFloat(priceStr.replace(/,/g, ''));
+                  if (!isNaN(price)) {
+                      let found = false;
+                      Object.values(newData.categories).forEach(cat => { if (cat.items[name]) { cat.items[name][1] = price; found = true; } });
+                      if (newData.etfs[name]) { newData.etfs[name][1] = price; found = true; }
+                      if (found) count++;
+                  }
+              }
+          });
+          setData(newData);
+          await savePortfolio(newData);
+          setSheetsInput('');
+          Alert.alert("Success", `${count} items updated via Sync Box.`);
+        } catch (e) { Alert.alert("Sync Error", "Invalid data format."); }
+      };
+
+      const updateAssetVal = (cat, item, index, val) => {
+        let newData = JSON.parse(JSON.stringify(data));
+        const num = parseFloat(val) || 0;
+        if (cat === 'ppf') newData.ppf = num;
+        else if (cat === 'goldRate') newData.tanishq.rate = num;
+        else if (cat === 'goldGrams') newData.tanishq.grams = num;
+        else if (cat === 'etf') newData.etfs[item][index] = num;
+        else newData.categories[cat].items[item][index] = num;
+        setData(newData);
+      };
+
+      const createAssetClass = async () => {
+        if (!newCatName) return;
+        let newData = JSON.parse(JSON.stringify(data));
+        newData.categories[newCatName] = { type: 'Units', items: {} };
+        setData(newData); await savePortfolio(newData); setNewCatName('');
+        Alert.alert("Success", `Category "${newCatName}" Created.`);
+      };
+
+      const deleteAsset = async (cat, item) => {
+        let newData = JSON.parse(JSON.stringify(data));
+        if (cat === 'etf') delete newData.etfs[item];
+        else delete newData.categories[cat].items[item];
+        setData(newData); await savePortfolio(newData); 
+      };
+
+      const deleteAssetClass = (name) => {
+        Alert.alert("Delete Category", `Are you sure?`, [
+          { text: "Cancel" }, { text: "Delete", onPress: async () => { let newData = JSON.parse(JSON.stringify(data)); delete newData.categories[name]; setData(newData); await savePortfolio(newData); }, style: 'destructive'}
+        ]);
+      };
+
+      const addAsset = (cat, name, qty) => {
+        if (!name) return;
+        let newData = JSON.parse(JSON.stringify(data));
+        const nQty = parseFloat(qty) || 0;
+        if (cat === 'etf') newData.etfs[name] = [nQty, 100.0, ''];
+        else newData.categories[cat].items[name] = [nQty, 100.0, ''];
+        setData(newData);
+      };
+
+      const getTotal = (cat) => Object.values(cat.items).reduce((a, b) => a + ((Number(b[0]) || 0) * (Number(b[1]) || 0)), 0);
+
+      const equityVal = (data.categories['Direct Stocks'] ? getTotal(data.categories['Direct Stocks']) : 0) + (data.categories['Equity Mutual Funds'] ? getTotal(data.categories['Equity Mutual Funds']) : 0);
+      const debtVal = data.ppf + (data.categories['Debt Mutual Funds'] ? getTotal(data.categories['Debt Mutual Funds']) : 0) + (data.categories['Fixed Deposits'] ? getTotal(data.categories['Fixed Deposits']) : 0);
+      const tanishqGoldVal = (Number(data.tanishq.grams) || 0) * (Number(data.tanishq.rate) || 0);
+      const goldEtfVal = data.etfs['Nippon Gold BeES'] ? (Number(data.etfs['Nippon Gold BeES'][0]) || 0) * (Number(data.etfs['Nippon Gold BeES'][1]) || 0) : 0;
+      const customGoldVal = data.categories['Physical Gold'] ? getTotal(data.categories['Physical Gold']) : 0;
+      const goldVal = tanishqGoldVal + goldEtfVal + customGoldVal;
+      const silverVal = data.etfs['ICICI Silver ETF'] ? (Number(data.etfs['ICICI Silver ETF'][0]) || 0) * (Number(data.etfs['ICICI Silver ETF'][1]) || 0) : 0;
+      const customCategoriesVal = Object.entries(data.categories).filter(([name]) => !['Direct Stocks', 'Debt Mutual Funds', 'Equity Mutual Funds', 'Fixed Deposits', 'Physical Gold'].includes(name)).reduce((acc, [_, cat]) => acc + getTotal(cat), 0);
+      const otherVal = silverVal + customCategoriesVal;
+      const totalNetWorth = equityVal + debtVal + goldVal + otherVal;
+
+      const equityPct = totalNetWorth > 0 ? ((equityVal / totalNetWorth) * 100).toFixed(1) : 0;
+      const debtPct = totalNetWorth > 0 ? ((debtVal / totalNetWorth) * 100).toFixed(1) : 0;
+      const goldPct = totalNetWorth > 0 ? ((goldVal / totalNetWorth) * 100).toFixed(1) : 0;
+      const otherPct = totalNetWorth > 0 ? ((otherVal / totalNetWorth) * 100).toFixed(1) : 0;
+
+      return (
+        <SafeAreaView style={styles.container}>
+          <StatusBar />
+          <View style={styles.header}>
+            <View style={{flex: 1}}>
+              <Text style={styles.headerTitle}>{activeTab.toUpperCase()}</Text>
+              <Text style={styles.headerSub}>RAFI'S AUDIT ENGINE v2026.10 (WEB)</Text>
+            </View>
+            <View style={styles.headerIcons}>
+              <TouchableOpacity onPress={performBulkSync} style={styles.iconBtn}>
+                {isSyncing ? <ActivityIndicator /> : <Text style={styles.iconText}>🔄</Text>}
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowValue(!showValue)} style={styles.iconBtn}>
+                <Text style={styles.iconText}>{showValue ? "👁️" : "🙈"}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.tabs}>
+            {['Dashboard', 'Holdings', 'Alerts', 'Edit'].map(t => (
+              <TouchableOpacity key={t} onPress={() => setActiveTab(t)} style={{...styles.tab, ...(activeTab === t ? styles.tabActive : {})}}>
+                <Text style={{...styles.tabText, ...(activeTab === t ? styles.tabTextActive : {})}}>{t}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <ScrollView style={styles.body}>
+            {activeTab === 'Dashboard' && (
+              <View>
+                <View style={styles.wealthCard}>
+                  <Text style={styles.label}>NET ASSET VALUATION</Text>
+                  <Text style={styles.totalValue}>{showValue ? `₹${(totalNetWorth / 100000).toFixed(2)} L` : "••••••••"}</Text>
+                  <View style={styles.marketPill}><Text style={styles.marketText}>Verified ISIN Sync • {data.syncDate}</Text></View>
+                </View>
+
+                <View style={styles.allocationCard}>
+                  <Text style={styles.secTitle}>ASSET ALLOCATION BREAKDOWN</Text>
+                  <View style={styles.progressBar}>
+                    <View style={{ ...styles.progressSegment, flex: parseFloat(equityPct) || 0.1, backgroundColor: '#1565c0' }} />
+                    <View style={{ ...styles.progressSegment, flex: parseFloat(debtPct) || 0.1, backgroundColor: '#004d40' }} />
+                    <View style={{ ...styles.progressSegment, flex: parseFloat(goldPct) || 0.1, backgroundColor: '#fbc02d' }} />
+                    <View style={{ ...styles.progressSegment, flex: parseFloat(otherPct) || 0.1, backgroundColor: '#7b1fa2' }} />
+                  </View>
+                  <View style={styles.allocationLegend}>
+                    <View style={styles.legendItem}><View style={{...styles.legendDot, backgroundColor: '#1565c0'}} /><Text style={styles.legendText}>Equity: {showValue ? `${equityPct}%` : '••%'}</Text></View>
+                    <View style={styles.legendItem}><View style={{...styles.legendDot, backgroundColor: '#004d40'}} /><Text style={styles.legendText}>Debt: {showValue ? `${debtPct}%` : '••%'}</Text></View>
+                    <View style={styles.legendItem}><View style={{...styles.legendDot, backgroundColor: '#fbc02d'}} /><Text style={styles.legendText}>Gold: {showValue ? `${goldPct}%` : '••%'}</Text></View>
+                    <View style={styles.legendItem}><View style={{...styles.legendDot, backgroundColor: '#7b1fa2'}} /><Text style={styles.legendText}>Others: {showValue ? `${otherPct}%` : '••%'}</Text></View>
+                  </View>
+                </View>
+
+                <View style={styles.grid}>
+                    <SummaryCard label="Equity" val={equityVal} color="#1565c0" show={showValue} />
+                    <SummaryCard label="Debt" val={debtVal} color="#004d40" show={showValue} />
+                    <SummaryCard label="Gold" val={goldVal} color="#fbc02d" show={showValue} />
+                    <SummaryCard label="Others" val={otherVal} color="#7b1fa2" show={showValue} />
+                </View>
+              </View>
+            )}
+
+            {activeTab === 'Holdings' && (
+              <View>
+                <AssetCard label="GOLD (24K)" val={`${Number(data.tanishq.grams || 0).toFixed(4)}g - ₹${((Number(data.tanishq.grams) || 0) * (Number(data.tanishq.rate) || 0)).toLocaleString('en-IN')}`} show={showValue} color="#ffd700" />
+                <AssetCard label="PPF BALANCE" val={`₹${(Number(data.ppf) || 0).toLocaleString('en-IN')}`} show={showValue} color="#004d40" />
+                <View style={{...styles.assetCard, borderLeftColor: '#7b1fa2'}}>
+                    <Text style={styles.assetLabel}>COMMODITY ETFs</Text>
+                    {Object.entries(data.etfs).map(([name, vals]) => (
+                        <View key={name} style={styles.etfRow}>
+                            <View style={{flex: 1.5}}><Text style={styles.detailName}>{name}</Text><Text style={styles.ltpLabel}>NAV: ₹{Number(vals[1] || 0).toFixed(2)}</Text></View>
+                            <View style={{flex: 1, alignItems: 'flex-end'}}>
+                                <Text style={styles.detailVal}>{showValue ? `${vals[0]} u` : "••"}</Text>
+                                <Text style={styles.rupeeValDetail}>{showValue ? `₹${((Number(vals[0]) || 0) * (Number(vals[1]) || 0)).toLocaleString('en-IN')}` : "••"}</Text>
+                            </View>
+                        </View>
+                    ))}
+                </View>
+                {Object.entries(data.categories).map(([name, cat]) => (
+                  <HoldingsGroup key={name} title={name} items={cat.items} type={cat.type} open={openHoldings === name} onToggle={() => setOpenHoldings(openHoldings === name ? null : name)} show={showValue} />
+                ))}
+              </View>
+            )}
+
+            {activeTab === 'Alerts' && (
+              <View>
+                <Text style={styles.secTitle}>MULTI-SOURCE INTELLIGENCE (ET, MC, LM, CNBC)</Text>
+                {newsAlerts.length === 0 ? <Text style={styles.emptyText}>Tap 🔄 to fetch reports.</Text> : newsAlerts.map(a => (
+                  <TouchableOpacity key={a.id} style={styles.alertCard} onPress={() => Linking.openURL(a.l)}>
+                    <Text style={styles.alertMsg}>• {a.m}</Text>
+                    <Text style={styles.linkText}>READ FULL REPORT ↗</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {activeTab === 'Edit' && (
+              <View>
+                <View style={styles.sheetsBox}>
+                    <TextInput style={styles.sheetsInput} placeholder="Paste Master Sync Block Here" multiline value={sheetsInput} onChangeText={setSheetsInput} />
+                    <TouchableOpacity onPress={syncFromSheets} style={styles.newCatBtn}><Text style={styles.newCatBtnT}>SYNC DATA</Text></TouchableOpacity>
+                </View>
+                <TouchableOpacity style={styles.saveBtn} onPress={async () => { await savePortfolio(data); Alert.alert("Success", "Portfolio Locked."); }}>
+                    <Text style={styles.saveBtnT}>💾 LOCK ALL CHANGES</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{...styles.saveBtn, backgroundColor: '#1565c0', marginBottom: 20}} onPress={exportToPDF}>
+                    <Text style={styles.saveBtnT}>📄 EXPORT TO PDF</Text>
+                </TouchableOpacity>
+                <EditSection title="Core Assets" open={openEdit === 'core'} onToggle={() => setOpenEdit(openEdit === 'core' ? null : 'core')}>
+                    <EditField label="PPF Balance" val={data.ppf} onC={(v) => updateAssetVal('ppf', null, null, v)} />
+                    <EditField label="Gold Rate (24K)" val={data.tanishq.rate} onC={(v) => updateAssetVal('goldRate', null, null, v)} />
+                    <EditField label="Gold Grams" val={data.tanishq.grams} onC={(v) => updateAssetVal('goldGrams', null, null, v)} />
+                </EditSection>
+                <EditSection title="Manage ETFs" open={openEdit === 'etfs'} onToggle={() => setOpenEdit(openEdit === 'etfs' ? null : 'etfs')}>
+                    {Object.entries(data.etfs).map(([name, vals]) => (
+                      <View key={name} style={styles.editRow}>
+                        <View style={{flex: 1.5, marginRight: 5}}><EditField label={`${name} Qty`} val={vals[0]} onC={(v) => updateAssetVal('etf', name, 0, v)} /></View>
+                        <View style={{flex: 1}}><EditField label="Price" val={vals[1]} onC={(v) => updateAssetVal('etf', name, 1, v)} /></View>
+                        <TouchableOpacity onPress={() => deleteAsset('etf', name)} style={styles.delBtn}><Text style={styles.delText}>✕</Text></TouchableOpacity>
+                      </View>
+                    ))}
+                </EditSection>
+                {Object.entries(data.categories).map(([catName, cat]) => (
+                  <EditSection key={catName} title={catName} open={openEdit === catName} onToggle={() => setOpenEdit(openEdit === catName ? null : catName)}>
+                    <TouchableOpacity style={styles.deleteCatBtn} onPress={() => deleteAssetClass(catName)}><Text style={styles.deleteCatBtnT}>🗑️ DELETE {catName.toUpperCase()}</Text></TouchableOpacity>
+                    {Object.entries(cat.items).map(([k, v]) => (
+                      <View key={k} style={styles.editRow}>
+                        <View style={{flex: 1.5, marginRight: 5}}><EditField label={`${k} Qty`} val={v[0]} onC={(v) => updateAssetVal(catName, k, 0, v)} /></View>
+                        <View style={{flex: 1}}><EditField label="Price" val={v[1]} onC={(v) => updateAssetVal(catName, k, 1, v)} /></View>
+                        <TouchableOpacity onPress={() => deleteAsset(catName, k)} style={styles.delBtn}><Text style={styles.delText}>✕</Text></TouchableOpacity>
+                      </View>
+                    ))}
+                    <AddItemForm onAdd={(n, q) => addAsset(catName, n, q)} unit={cat.type} />
+                  </EditSection>
+                ))}
+                <View style={styles.newCatBox}>
+                    <Text style={styles.newCatTitle}>+ CREATE NEW ASSET CLASS</Text>
+                    <TextInput style={styles.input} placeholder="e.g. Fixed Deposits" value={newCatName} onChangeText={setNewCatName} />
+                    <TouchableOpacity style={styles.newCatBtn} onPress={createAssetClass}><Text style={styles.newCatBtnT}>CREATE CATEGORY</Text></TouchableOpacity>
+                </View>
+              </View>
+            )}
+            <View style={{ height: 100 }} />
+          </ScrollView>
+        </SafeAreaView>
+      );
+    }
+
+    const SummaryCard = ({ label, val, color, show }) => (
+      <View style={{...styles.sCard, borderLeftColor: color}}><Text style={styles.sLabel}>{label}</Text><Text style={styles.sVal}>{show ? `₹${(Number(val) / 100000).toFixed(2)} L` : "••••"}</Text></View>
+    );
+    const AssetCard = ({ label, val, show, color }) => (
+      <View style={{...styles.assetCard, borderLeftColor: color}}><Text style={styles.assetLabel}>{label}</Text><Text style={styles.assetVal}>{show ? val : "••••"}</Text></View>
+    );
+    const HoldingsGroup = ({ title, items, type, open, onToggle, show }) => (
+      <View style={styles.collapseBox}>
+        <TouchableOpacity onPress={() => onToggle()} style={styles.collapseHeader}><Text style={styles.collapseTitle}>{title.toUpperCase()}</Text><Text>{open ? '−' : '+'}</Text></TouchableOpacity>
+        {open && Object.entries(items).map(([k, v]) => (
+          <View key={k} style={styles.detailRow}>
+            <View style={{flex: 1.5}}><Text style={styles.detailName}>{k}</Text><Text style={styles.ltpLabel}>NAV: ₹{Number(v[1] || 0).toFixed(2)}</Text></View>
+            <View style={{flex: 1, alignItems: 'flex-end'}}><Text style={styles.detailVal}>{show ? `${v[0] || 0} ${type}` : "•••"}</Text><Text style={styles.rupeeValDetail}>{show ? `₹${((Number(v[0]) || 0) * (Number(v[1]) || 0)).toLocaleString('en-IN', {maximumFractionDigits: 0})}` : "•••"}</Text></View>
+          </View>
+        ))}
+      </View>
+    );
+    const EditSection = ({ title, open, onToggle, children }) => (
+      <View style={styles.editBox}><TouchableOpacity onPress={() => onToggle()} style={styles.editHeader}><Text style={styles.editTitle}>{title.toUpperCase()}</Text><Text>{open ? '▲' : '▼'}</Text></TouchableOpacity>{open && <View style={styles.editContent}>{children}</View>}</View>
+    );
+    const EditField = ({ label, val, onC }) => (
+      <View style={{marginBottom: 10}}><Text style={styles.inputLabel}>{label}</Text><TextInput style={styles.input} keyboardType="numeric" defaultValue={val?.toString()} onEndEditing={(e) => onC(e.nativeEvent.text)} /></View>
+    );
+    const AddItemForm = ({ onAdd, unit }) => {
+      const [n, setN] = useState(''); const [q, setQ] = useState('');
+      return (
+        <View style={styles.addForm}>
+          <TextInput style={{...styles.input, flex: 2}} placeholder="Add Asset" value={n} onChangeText={setN} />
+          <TextInput style={{...styles.input, flex: 1, marginLeft: 5}} placeholder={unit} keyboardType="numeric" value={q} onChangeText={setQ} />
+          <TouchableOpacity style={styles.addBtn} onPress={() => { onAdd(n, q); setN(''); setQ(''); }}><Text style={styles.addBtnT}>+</Text></TouchableOpacity>
+        </View>
+      );
+    };
+
+    const styles = {
+      container: { flex: 1, backgroundColor: '#f4f7f9' },
+      header: { padding: '20px', backgroundColor: '#004d40', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: '60px' },
+      headerTitle: { color: '#fff', fontWeight: 'bold', fontSize: '24px' },
+      headerSub: { color: '#b2dfdb', fontSize: '10px', fontWeight: 'bold', marginTop: '4px' },
+      headerIcons: { flexDirection: 'row', display: 'flex' },
+      iconBtn: { marginLeft: '15px' },
+      iconText: { fontSize: '20px' },
+      tabs: { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: '1px', borderBottomStyle: 'solid', borderBottomColor: '#eee' },
+      tab: { flex: 1, padding: '15px', alignItems: 'center' },
+      tabActive: { borderBottomWidth: '3px', borderBottomStyle: 'solid', borderBottomColor: '#004d40' },
+      tabText: { fontSize: '10px', fontWeight: 'bold', color: '#999' },
+      tabTextActive: { color: '#004d40' },
+      body: { padding: '15px' },
+      wealthCard: { backgroundColor: '#fff', padding: '25px', borderRadius: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)', marginBottom: '15px' },
+      allocationCard: { backgroundColor: '#fff', padding: '20px', borderRadius: '16px', marginBottom: '15px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' },
+      progressBar: { height: '12px', borderRadius: '6px', flexDirection: 'row', overflow: 'hidden', marginVertical: '10px', backgroundColor: '#eee', marginTop: '10px', marginBottom: '10px' },
+      progressSegment: { height: '100%' },
+      allocationLegend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px', flexWrap: 'wrap' },
+      legendItem: { flexDirection: 'row', alignItems: 'center', marginRight: '10px', marginTop: '4px' },
+      legendDot: { width: '8px', height: '8px', borderRadius: '4px', marginRight: '5px' },
+      legendText: { fontSize: '10px', color: '#444', fontWeight: '500' },
+      label: { fontSize: '9px', color: '#888', fontWeight: 'bold' },
+      totalValue: { fontSize: '32px', fontWeight: 'bold', color: '#004d40', marginVertical: '8px', marginTop: '8px', marginBottom: '8px' },
+      marketPill: { backgroundColor: '#e3f2fd', padding: '5px', borderRadius: '5px', alignSelf: 'flex-start' },
+      marketText: { color: '#1565c0', fontSize: '10px', fontWeight: 'bold' },
+      grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+      sCard: { backgroundColor: '#fff', padding: '12px', borderRadius: '10px', width: '48%', marginBottom: '10px', borderLeftWidth: '4px', borderLeftStyle: 'solid', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' },
+      sLabel: { fontSize: '10px', color: '#666', marginBottom: '5px' },
+      sVal: { fontSize: '14px', fontWeight: 'bold', color: '#333' },
+      assetCard: { backgroundColor: '#fff', padding: '15px', borderRadius: '12px', marginBottom: '8px', borderLeftWidth: '5px', borderLeftStyle: 'solid', borderLeftColor: '#004d40' },
+      assetLabel: { fontSize: '9px', color: '#888', fontWeight: 'bold' },
+      assetVal: { fontSize: '16px', fontWeight: 'bold', color: '#1a1a1a', marginTop: '4px' },
+      secTitle: { fontSize: '11px', fontWeight: 'bold', color: '#004d40', marginBottom: '5px' },
+      ltpLabel: { fontSize: '9px', color: '#d32f2f' },
+      rupeeValDetail: { fontSize: '12px', fontWeight: 'bold', color: '#004d40' },
+      collapseBox: { backgroundColor: '#fff', borderRadius: '12px', marginBottom: '10px', overflow: 'hidden' },
+      collapseHeader: { padding: '15px', flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#fdfdfd' },
+      collapseTitle: { fontWeight: 'bold', fontSize: '12px', color: '#444' },
+      detailRow: { flexDirection: 'row', justifyContent: 'space-between', padding: '12px', borderTopWidth: '1px', borderTopStyle: 'solid', borderTopColor: '#f0f0f0', alignItems: 'center' },
+      detailName: { fontSize: '11px', color: '#333', fontWeight: '500' },
+      detailVal: { fontSize: '10px', color: '#666' },
+      alertCard: { backgroundColor: '#fff', padding: '15px', borderRadius: '12px', marginBottom: '10px', borderLeftWidth: '5px', borderLeftStyle: 'solid', borderLeftColor: '#1565c0' },
+      alertMsg: { fontSize: '12px', color: '#444', lineHeight: '20px' },
+      linkText: { color: '#1565c0', fontSize: '9px', marginTop: '5px', fontWeight: 'bold', textDecoration: 'underline' },
+      emptyText: { fontSize: '12px', color: '#999', textAlign: 'center', marginTop: '50px' },
+      saveBtn: { backgroundColor: '#004d40', padding: '15px', borderRadius: '12px', marginBottom: '20px', alignItems: 'center', justifyContent: 'center' },
+      saveBtnT: { color: '#fff', fontWeight: 'bold' },
+      sheetsBox: { backgroundColor: '#e0f2f1', padding: '15px', borderRadius: '12px', marginBottom: '15px' },
+      newCatBox: { backgroundColor: '#e0f2f1', padding: '15px', borderRadius: '12px', marginTop: '10px' },
+      newCatTitle: { fontSize: '10px', fontWeight: 'bold', color: '#004d40', marginBottom: '8px' },
+      newCatBtn: { backgroundColor: '#004d40', padding: '10px', borderRadius: '8px', marginTop: '10px', alignItems: 'center', justifyContent: 'center' },
+      newCatBtnT: { color: '#fff', fontWeight: 'bold', fontSize: '11px' },
+      sheetsInput: { backgroundColor: '#fff', padding: '10px', borderRadius: '8px', height: '60px', fontSize: '12px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#b2dfdb', outline: 'none' },
+      delBtn: { marginLeft: '10px', padding: '10px', backgroundColor: '#ffebee', borderRadius: '8px', alignItems: 'center', justifyContent: 'center' },
+      delText: { color: '#d32f2f', fontWeight: 'bold' },
+      addForm: { flexDirection: 'row', marginTop: '10px', borderTopWidth: '1px', borderTopStyle: 'solid', borderTopColor: '#eee', paddingTop: '15px', alignItems: 'center' },
+      addBtn: { marginLeft: '5px', backgroundColor: '#00796b', padding: '10px', borderRadius: '8px', alignItems: 'center', justifyContent: 'center', width: '40px' },
+      addBtnT: { color: '#fff', fontWeight: 'bold', fontSize: '18px' },
+      editBox: { backgroundColor: '#fff', borderRadius: '12px', marginBottom: '10px', overflow: 'hidden' },
+      editHeader: { padding: '15px', flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#fafafa' },
+      editTitle: { fontWeight: 'bold', fontSize: '11px', color: '#00796b' },
+      editContent: { padding: '10px' },
+      editRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: '15px' },
+      inputLabel: { fontSize: '9px', color: '#999', marginBottom: '4px' },
+      input: { backgroundColor: '#fff', padding: '10px', borderRadius: '8px', fontSize: '14px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#ddd', outline: 'none' },
+      deleteCatBtn: { backgroundColor: '#ffebee', padding: '8px', borderRadius: '5px', marginBottom: '15px', borderStyle: 'dashed', borderWidth: '1px', borderColor: '#d32f2f', alignItems: 'center' },
+      deleteCatBtnT: { color: '#d32f2f', fontSize: '9px', fontWeight: 'bold', textAlign: 'center' },
+      etfRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: '10px', paddingBottom: '5px', borderBottomWidth: '1px', borderBottomStyle: 'dashed', borderBottomColor: '#eee' }
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
