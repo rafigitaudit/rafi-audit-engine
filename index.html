@@ -61,45 +61,46 @@
     const Linking = { openURL: (url) => window.open(url, '_blank') };
     const LayoutAnimation = { easeInEaseOut: () => {} };
 
-    const STORAGE_KEY = 'laskar_master_audit_v11';
+    const STORAGE_KEY = 'laskar_master_audit_v13';
 
     const initialData = {
       ppf: 890000,
       tanishq: { grams: 18.1517, rate: 15296 },
-      liveGoldRate: 7450,
+      physicalGold24K: { grams: 0, rate: 7450 },
+      physicalGold22K: { grams: 0, rate: 6830 },
+      physicalSilver: { grams: 0, rate: 90 },
       syncDate: '29 Sept 2026',
       etfs: { 
-          'Nippon Gold BeES': [644, 120.65, 'INF204KB17I5'], 
-          'ICICI Silver ETF': [351, 237.26, 'INF109KC1Y56'] 
+          'Nippon Gold BeES': [644, 121.22, 'INF204KB17I5'], 
+          'ICICI Silver ETF': [351, 220.20, 'INF109KC1Y56'] 
       },
       categories: {
-        'Physical Gold': { type: 'Value', items: { 'Additional Physical Gold': [1, 581000, ''] } },
         'Direct Stocks': { type: 'Shrs', items: { 
-            'Reliance': [181, 1350.90, 'INE002A01018'], 
-            'JioFin': [273, 229.48, 'INE758E01017'], 
-            'Tata Power': [221, 385.00, 'INE245A01021'], 
-            'ITC Hotels': [211, 148.09, 'INE379A01028'], 
-            'IREDA': [151, 114.94, 'INE202E01016'], 
-            'HCG': [127, 526.00, 'INE075I01017'], 
-            'BEL': [76, 421.60, 'INE263A01024'], 
-            'Anantraj': [51, 450.40, 'INE242C01024'], 
-            'L&T': [41, 3621.00, 'INE018A01030'], 
-            'Zen Tech': [41, 1367.20, 'INE251B01027'], 
-            'NAM-India': [33, 830.00, 'INE298J01013'], 
-            'DLF': [31, 521.00, 'INE271C01023'], 
-            'Rainbow': [25, 1182.30, 'INE961O01016'], 
-            'HAL': [21, 3680.50, 'INE066F01020'], 
-            'Adani Ports': [21, 1380.00, 'INE742F01042'], 
-            'NH': [17, 1625.00, 'INE410P01011'], 
-            'Cipla': [15, 1195.00, 'INE059A01026'], 
-            'Naukri': [15, 987.50, 'INE663F01032'], 
-            'IndiGo': [14, 4170.00, 'INE646L01027'], 
-            'Bharti Airtel': [12, 1792.00, 'INE397D01024'], 
-            'United Spirits': [12, 1221.20, 'INE854D01024'], 
-            'Deepak Nitrite': [11, 1375.00, 'INE288B01029'], 
-            'ICICI Lombard': [10, 1693.00, 'INE765G01017'], 
-            'IndiaMart': [10, 2011.00, 'INE933S01016'], 
-            'Coforge': [2, 1207.40, 'INE591G01025'] 
+            'Reliance': [181, 1198.50, 'INE002A01018'], 
+            'JioFin': [273, 220.50, 'INE758E01017'], 
+            'Tata Power': [221, 362.00, 'INE245A01021'], 
+            'ITC Hotels': [211, 158.57, 'INE379A01028'], 
+            'IREDA': [151, 114.95, 'INE202E01016'], 
+            'HCG': [127, 692.35, 'INE075I01017'], 
+            'BEL': [76, 386.00, 'INE263A01024'], 
+            'Anantraj': [51, 608.05, 'INE242C01024'], 
+            'L&T': [41, 3770.00, 'INE018A01030'], 
+            'Zen Tech': [41, 1643.55, 'INE251B01027'], 
+            'NAM-India': [33, 1097.95, 'INE298J01013'], 
+            'DLF': [31, 664.00, 'INE271C01023'], 
+            'Rainbow': [25, 1373.30, 'INE961O01016'], 
+            'HAL': [21, 4739.00, 'INE066F01020'], 
+            'Adani Ports': [21, 1743.70, 'INE742F01042'], 
+            'NH': [17, 1820.10, 'INE410P01011'], 
+            'Cipla': [15, 1388.90, 'INE059A01026'], 
+            'Naukri': [15, 1253.90, 'INE663F01032'], 
+            'IndiGo': [14, 4874.50, 'INE646L01027'], 
+            'Bharti Airtel': [12, 1771.80, 'INE397D01024'], 
+            'United Spirits': [12, 1415.40, 'INE854D01024'], 
+            'Deepak Nitrite': [11, 1551.05, 'INE288B01029'], 
+            'ICICI Lombard': [10, 1543.00, 'INE765G01017'], 
+            'IndiaMart': [10, 1637.00, 'INE933S01016'], 
+            'Coforge': [2, 1773.00, 'INE591G01025'] 
         } },
         'Debt Mutual Funds': { type: 'Units', items: { 
             'ABSL Medium Term (Direct Growth)': [7311.07, 46.18, 'INF209K01XA9'], 
@@ -115,50 +116,22 @@
         'Equity Mutual Funds': { type: 'Units', items: { 
             'Axis ELSS (Direct Growth)': [1814.13, 97.72, 'INF846K01EW2'], 
             'Axis ELSS (Regular Growth)': [0.0, 90.15, 'INF846K01131'], 
-            'DSP Small Cap (Direct Growth)': [564.38, 199.61, 'INF740K01QD1'], 
-            'Parag Parikh Flexi (Direct Growth)': [1120.81, 86.34, 'INF879O01027'], 
-            'HDFC Mid-Cap (Direct Growth)': [607.20, 183.29, 'INF179K01XQ0'], 
-            'Invesco Multicap (Direct Growth)': [892.64, 132.43, 'INF205K01MS2'], 
-            'Edelweiss US Tech (Direct Growth)': [1175.66, 32.21, 'INF754K01LB7'], 
-            'UTI Nifty 50 Index (Direct Growth)': [260.71, 158.54, 'INF789F01XA0'], 
-            'ICICI Pru Large (Direct Growth)': [373.65, 111.57, 'INF109K016L0'], 
-            'Motilal Nasdaq 100 (Direct Growth)': [184.62, 238.57, 'INF247L01718'], 
+            'DSP Small Cap (Direct Growth)': [564.38, 256.991, 'INF740K01QD1'], 
+            'Parag Parikh Flexi (Direct Growth)': [1120.81, 89.958, 'INF879O01027'], 
+            'HDFC Mid-Cap (Direct Growth)': [607.20, 226.38, 'INF179K01XQ0'], 
+            'Invesco Multicap (Direct Growth)': [892.64, 156.80, 'INF205K01MS2'], 
+            'Edelweiss US Tech (Direct Growth)': [1175.66, 42.5002, 'INF754K01LB7'], 
+            'UTI Nifty 50 Index (Direct Growth)': [260.71, 162.9607, 'INF789F01XA0'], 
+            'ICICI Pru Large (Direct Growth)': [373.65, 115.57, 'INF109K016L0'], 
+            'Motilal Nasdaq 100 (Direct Growth)': [184.62, 68.3721, 'INF247L01718'], 
             'Axis Global Alpha (Direct Growth)': [1058.20, 23.16, 'INF846K01X06'], 
             'SBI Large & Midcap (Direct Growth)': [20.06, 640.79, 'INF200K01UJ5'],
-            'Franklin U.S. Opportunities Active FoF Direct Growth': [145.88, 104.17, 'INF090I01JR0']
+            'Franklin U.S. Opportunities Active FoF Direct Growth': [145.88, 107.8591, 'INF090I01JR0']
         } },
         'Hybrid Funds': { type: 'Units', items: { 
             'ICICI Prudential Balanced Advantage Fund Direct Growth': [0, 89.59, 'INF109K012B0'] 
         } }
       }
-    };
-
-    const universalISINMap = {
-      'absl medium term': 'INF209K01XA9',
-      'icici pru arb': 'INF109K01W82',
-      'nippon india corp bond': 'INF204K01C15',
-      'sbi arbitrage': 'INF200K01QU0',
-      'icici pru short term': 'INF109K013N3',
-      'sbi dynamic bond': 'INF200K01RD4',
-      'hdfc arbitrage': 'INF179KA1SC5',
-      'kotak equity savings': 'INF174K01D28',
-      'edelweiss liquid': 'INF754K01GM4',
-      'axis elss (direct': 'INF846K01EW2',
-      'axis elss (regular': 'INF846K01131',
-      'dsp small cap': 'INF740K01QD1',
-      'parag parikh flexi': 'INF879O01027',
-      'hdfc mid-cap': 'INF179K01XQ0',
-      'invesco multicap': 'INF205K01MS2',
-      'edelweiss us tech': 'INF754K01LB7',
-      'uti nifty 50 index': 'INF789F01XA0',
-      'icici pru large': 'INF109K016L0',
-      'motilal nasdaq 100': 'INF247L01718',
-      'axis global alpha': 'INF846K01X06',
-      'sbi large & midcap': 'INF200K01UJ5',
-      'franklin u.s. opportunities': 'INF090I01JR0',
-      'icici prudential balanced advantage': 'INF109K012B0',
-      'icici pru balanced advantage': 'INF109K012B0',
-      'icici pru balance advantage': 'INF109K012B0'
     };
 
     function App() {
@@ -183,8 +156,10 @@
             finalData = JSON.parse(s);
             if (!finalData.ppf) finalData.ppf = 890000;
             if (!finalData.tanishq) finalData.tanishq = { grams: 18.1517, rate: 15296 };
-            if (!finalData.liveGoldRate) finalData.liveGoldRate = 7450;
-            if (!finalData.syncDate || finalData.syncDate.includes('Aug')) finalData.syncDate = '29 Sept 2026';
+            if (!finalData.physicalGold24K) finalData.physicalGold24K = { grams: 0, rate: 7450 };
+            if (!finalData.physicalGold22K) finalData.physicalGold22K = { grams: 0, rate: 6830 };
+            if (!finalData.physicalSilver) finalData.physicalSilver = { grams: 0, rate: 90 };
+            if (!finalData.syncDate) finalData.syncDate = '29 Sept 2026';
             if (!finalData.etfs) finalData.etfs = {};
             if (!finalData.categories) finalData.categories = {};
           } else {
@@ -203,12 +178,50 @@
         setIsRefreshing(true);
         try {
           let newData = JSON.parse(JSON.stringify(data));
-          newData.syncDate = '29 Sept 2026';
+          
+          // Auto-fetch live Gold 24K benchmark rate
+          try {
+            const goldRes = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://data-asg.goldprice.org/dbXRates/INR'));
+            if(goldRes.ok) {
+              const goldJson = await goldRes.json();
+              if(goldJson && goldJson.items && goldJson.items[0] && goldJson.items[0].xauPrice) {
+                const perGram24K = goldJson.items[0].xauPrice / 31.1035;
+                newData.physicalGold24K.rate = Math.round(perGram24K);
+                newData.physicalGold22K.rate = Math.round(perGram24K * 0.916);
+              }
+            }
+          } catch(err) { console.log("Gold fetch fallback active"); }
+
+          // Auto-fetch Mutual Fund NAVs using ISIN codes via mfapi.in
+          const mfCategories = ['Equity Mutual Funds', 'Debt Mutual Funds', 'Hybrid Funds'];
+          for (let catKey of mfCategories) {
+            if (newData.categories[catKey] && newData.categories[catKey].items) {
+              for (let [itemName, itemVals] of Object.entries(newData.categories[catKey].items)) {
+                const isin = itemVals[2];
+                if (isin && isin.trim() !== '') {
+                  try {
+                    const navRes = await fetch(`https://api.mfapi.in/mf/${isin}`);
+                    if (navRes.ok) {
+                      const navJson = await navRes.json();
+                      if (navJson && navJson.data && navJson.data.length > 0) {
+                        const latestNav = parseFloat(navJson.data[0].nav);
+                        if (!isNaN(latestNav)) {
+                          newData.categories[catKey].items[itemName][1] = latestNav;
+                        }
+                      }
+                    }
+                  } catch(mfErr) { console.log(`Could not fetch NAV for ${itemName}`); }
+                }
+              }
+            }
+          }
+
+          newData.syncDate = new Date().toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'});
           setData(newData);
           await savePortfolio(newData);
-          Alert.alert("Refreshed", "Portfolio updated successfully for 29 Sept 2026.");
+          Alert.alert("Refreshed", "Mutual Fund NAVs and live gold rates updated successfully!");
         } catch (e) {
-          Alert.alert("Refreshed", "Assets updated.");
+          Alert.alert("Refreshed", "Live sync completed.");
         } finally {
           setIsRefreshing(false);
         }
@@ -230,11 +243,16 @@
                       let found = false;
                       Object.values(newData.categories).forEach(cat => { if (cat.items[name]) { cat.items[name][1] = price; found = true; } });
                       if (newData.etfs[name]) { newData.etfs[name][1] = price; found = true; }
+                      if (name.toLowerCase() === 'tanishq rate') { newData.tanishq.rate = price; found = true; }
+                      if (name.toLowerCase() === 'tanishq grams') { newData.tanishq.grams = price; found = true; }
+                      if (name.toLowerCase() === 'gold 24k grams') { newData.physicalGold24K.grams = price; found = true; }
+                      if (name.toLowerCase() === 'gold 22k grams') { newData.physicalGold22K.grams = price; found = true; }
+                      if (name.toLowerCase() === 'silver grams') { newData.physicalSilver.grams = price; found = true; }
                       if (found) count++;
                   }
               }
           });
-          newData.syncDate = '29 Sept 2026';
+          newData.syncDate = new Date().toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'});
           setData(newData);
           await savePortfolio(newData);
           setSheetsInput('');
@@ -246,9 +264,14 @@
         let newData = JSON.parse(JSON.stringify(data));
         const num = parseFloat(val) || 0;
         if (cat === 'ppf') newData.ppf = num;
-        else if (cat === 'goldRate') newData.tanishq.rate = num;
-        else if (cat === 'goldGrams') newData.tanishq.grams = num;
-        else if (cat === 'liveGold') newData.liveGoldRate = num;
+        else if (cat === 'tanishqRate') newData.tanishq.rate = num;
+        else if (cat === 'tanishqGrams') newData.tanishq.grams = num;
+        else if (cat === 'g24kGrams') newData.physicalGold24K.grams = num;
+        else if (cat === 'g24kRate') newData.physicalGold24K.rate = num;
+        else if (cat === 'g22kGrams') newData.physicalGold22K.grams = num;
+        else if (cat === 'g22kRate') newData.physicalGold22K.rate = num;
+        else if (cat === 'silverGrams') newData.physicalSilver.grams = num;
+        else if (cat === 'silverRate') newData.physicalSilver.rate = num;
         else if (cat === 'etf') newData.etfs[item][index] = num;
         else newData.categories[cat].items[item][index] = num;
         setData(newData);
@@ -290,12 +313,16 @@
 
       const equityVal = (data.categories['Direct Stocks'] ? getTotal(data.categories['Direct Stocks']) : 0) + (data.categories['Equity Mutual Funds'] ? getTotal(data.categories['Equity Mutual Funds']) : 0);
       const debtVal = data.ppf + (data.categories['Debt Mutual Funds'] ? getTotal(data.categories['Debt Mutual Funds']) : 0) + (data.categories['Fixed Deposits'] ? getTotal(data.categories['Fixed Deposits']) : 0);
+      
       const tanishqGoldVal = (Number(data.tanishq.grams) || 0) * (Number(data.tanishq.rate) || 0);
+      const gold24KVal = (Number(data.physicalGold24K.grams) || 0) * (Number(data.physicalGold24K.rate) || 0);
+      const gold22KVal = (Number(data.physicalGold22K.grams) || 0) * (Number(data.physicalGold22K.rate) || 0);
       const goldEtfVal = data.etfs['Nippon Gold BeES'] ? (Number(data.etfs['Nippon Gold BeES'][0]) || 0) * (Number(data.etfs['Nippon Gold BeES'][1]) || 0) : 0;
-      const customGoldVal = data.categories['Physical Gold'] ? getTotal(data.categories['Physical Gold']) : 0;
-      const goldVal = tanishqGoldVal + goldEtfVal + customGoldVal;
-      const silverVal = data.etfs['ICICI Silver ETF'] ? (Number(data.etfs['ICICI Silver ETF'][0]) || 0) * (Number(data.etfs['ICICI Silver ETF'][1]) || 0) : 0;
-      const customCategoriesVal = Object.entries(data.categories).filter(([name]) => !['Direct Stocks', 'Debt Mutual Funds', 'Equity Mutual Funds', 'Fixed Deposits', 'Physical Gold'].includes(name)).reduce((acc, [_, cat]) => acc + getTotal(cat), 0);
+      const goldVal = tanishqGoldVal + gold24KVal + gold22KVal + goldEtfVal;
+
+      const silverVal = (Number(data.physicalSilver.grams) || 0) * (Number(data.physicalSilver.rate) || 0) + (data.etfs['ICICI Silver ETF'] ? (Number(data.etfs['ICICI Silver ETF'][0]) || 0) * (Number(data.etfs['ICICI Silver ETF'][1]) || 0) : 0);
+      
+      const customCategoriesVal = Object.entries(data.categories).filter(([name]) => !['Direct Stocks', 'Debt Mutual Funds', 'Equity Mutual Funds', 'Fixed Deposits'].includes(name)).reduce((acc, [_, cat]) => acc + getTotal(cat), 0);
       const otherVal = silverVal + customCategoriesVal;
       const totalNetWorth = equityVal + debtVal + goldVal + otherVal;
 
@@ -366,8 +393,12 @@
 
             {activeTab === 'Holdings' && (
               <View>
-                <AssetCard label="GOLD (24K - TANISHQ & BENCHMARK)" val={`Tanishq: ${Number(data.tanishq.grams || 0).toFixed(4)}g (₹${data.tanishq.rate}/g) | Live Mkt: ₹${data.liveGoldRate}/g`} show={showValue} color="#ffd700" />
+                <AssetCard label="TANISHQ GOLD (24K - MANUAL)" val={`${Number(data.tanishq.grams || 0).toFixed(4)}g @ ₹${data.tanishq.rate}/g = ₹${(data.tanishq.grams * data.tanishq.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}`} show={showValue} color="#ffd700" />
+                <AssetCard label="PHYSICAL GOLD 24K (AUTO RATE)" val={`${Number(data.physicalGold24K.grams || 0).toFixed(4)}g @ ₹${data.physicalGold24K.rate}/g = ₹${(data.physicalGold24K.grams * data.physicalGold24K.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}`} show={showValue} color="#ffb300" />
+                <AssetCard label="PHYSICAL GOLD 22K (AUTO RATE)" val={`${Number(data.physicalGold22K.grams || 0).toFixed(4)}g @ ₹${data.physicalGold22K.rate}/g = ₹${(data.physicalGold22K.grams * data.physicalGold22K.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}`} show={showValue} color="#ffa000" />
+                <AssetCard label="PHYSICAL SILVER" val={`${Number(data.physicalSilver.grams || 0).toFixed(2)}g @ ₹${data.physicalSilver.rate}/g = ₹${(data.physicalSilver.grams * data.physicalSilver.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}`} show={showValue} color="#9e9e9e" />
                 <AssetCard label="PPF BALANCE" val={`₹${(Number(data.ppf) || 0).toLocaleString('en-IN')}`} show={showValue} color="#004d40" />
+                
                 <View style={{...styles.assetCard, borderLeftColor: '#7b1fa2'}}>
                     <Text style={styles.assetLabel}>COMMODITY ETFs</Text>
                     {Object.entries(data.etfs).map(([name, vals]) => (
@@ -401,19 +432,26 @@
             {activeTab === 'Edit' && (
               <View>
                 <View style={styles.sheetsBox}>
-                    <Text style={styles.newCatTitle}>MASTER SYNC BOX (PASTE OUTSIDE ASSETS HERE)</Text>
-                    <TextInput style={styles.sheetsInput} placeholder="e.g. PPF 900000" multiline value={sheetsInput} onChangeText={setSheetsInput} />
+                    <Text style={styles.newCatTitle}>MASTER SYNC BOX (PASTE STOCKS & ETFS HERE)</Text>
+                    <TextInput style={styles.sheetsInput} placeholder="Paste stocks closing values here..." multiline value={sheetsInput} onChangeText={setSheetsInput} />
                     <TouchableOpacity onPress={syncFromSheets} style={styles.newCatBtn}><Text style={styles.newCatBtnT}>SYNC DATA</Text></TouchableOpacity>
                 </View>
                 <TouchableOpacity style={styles.saveBtn} onPress={async () => { await savePortfolio(data); Alert.alert("Success", "Portfolio Locked."); }}>
                     <Text style={styles.saveBtnT}>💾 LOCK ALL CHANGES</Text>
                 </TouchableOpacity>
-                <EditSection title="Core Assets & Gold" open={openEdit === 'core'} onToggle={() => setOpenEdit(openEdit === 'core' ? null : 'core')}>
+                
+                <EditSection title="Gold & Silver Assets" open={openEdit === 'gold'} onToggle={() => setOpenEdit(openEdit === 'gold' ? null : 'gold')}>
                     <EditField label="PPF Balance" val={data.ppf} onC={(v) => updateAssetVal('ppf', null, null, v)} />
-                    <EditField label="Tanishq Gold Rate (24K per g)" val={data.tanishq.rate} onC={(v) => updateAssetVal('goldRate', null, null, v)} />
-                    <EditField label="Tanishq Gold Grams" val={data.tanishq.grams} onC={(v) => updateAssetVal('goldGrams', null, null, v)} />
-                    <EditField label="Live Gold Market Benchmark (per g)" val={data.liveGoldRate} onC={(v) => updateAssetVal('liveGold', null, null, v)} />
+                    <EditField label="Tanishq Gold Grams (Manual)" val={data.tanishq.grams} onC={(v) => updateAssetVal('tanishqGrams', null, null, v)} />
+                    <EditField label="Tanishq Gold Rate per g (Manual)" val={data.tanishq.rate} onC={(v) => updateAssetVal('tanishqRate', null, null, v)} />
+                    <EditField label="Physical Gold 24K Grams" val={data.physicalGold24K.grams} onC={(v) => updateAssetVal('g24kGrams', null, null, v)} />
+                    <EditField label="Physical Gold 24K Rate per g (Auto/Editable)" val={data.physicalGold24K.rate} onC={(v) => updateAssetVal('g24kRate', null, null, v)} />
+                    <EditField label="Physical Gold 22K Grams" val={data.physicalGold22K.grams} onC={(v) => updateAssetVal('g22kGrams', null, null, v)} />
+                    <EditField label="Physical Gold 22K Rate per g (Auto/Editable)" val={data.physicalGold22K.rate} onC={(v) => updateAssetVal('g22kRate', null, null, v)} />
+                    <EditField label="Physical Silver Grams" val={data.physicalSilver.grams} onC={(v) => updateAssetVal('silverGrams', null, null, v)} />
+                    <EditField label="Physical Silver Rate per g" val={data.physicalSilver.rate} onC={(v) => updateAssetVal('silverRate', null, null, v)} />
                 </EditSection>
+
                 <EditSection title="Manage ETFs" open={openEdit === 'etfs'} onToggle={() => setOpenEdit(openEdit === 'etfs' ? null : 'etfs')}>
                     {Object.entries(data.etfs).map(([name, vals]) => (
                       <View key={name} style={styles.editRow}>
@@ -515,7 +553,7 @@
       sVal: { fontSize: '16px', fontWeight: 'bold', color: '#222' },
       assetCard: { backgroundColor: '#fff', padding: '18px', borderRadius: '14px', marginBottom: '12px', borderLeftWidth: '6px', borderLeftStyle: 'solid', borderLeftColor: '#004d40' },
       assetLabel: { fontSize: '11px', color: '#666', fontWeight: 'bold' },
-      assetVal: { fontSize: '18px', fontWeight: 'bold', color: '#1a1a1a', marginTop: '6px' },
+      assetVal: { fontSize: '16px', fontWeight: 'bold', color: '#1a1a1a', marginTop: '6px' },
       secTitle: { fontSize: '13px', fontWeight: 'bold', color: '#004d40', marginBottom: '8px' },
       ltpLabel: { fontSize: '11px', color: '#555', fontWeight: '600', marginTop: '2px' },
       rupeeValDetail: { fontSize: '14px', fontWeight: 'bold', color: '#004d40' },
@@ -549,7 +587,7 @@
       editRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: '16px' },
       inputLabel: { fontSize: '11px', color: '#666', marginBottom: '6px', fontWeight: 'bold' },
       input: { backgroundColor: '#fff', padding: '12px', borderRadius: '10px', fontSize: '15px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#ddd', outline: 'none' },
-      deleteCatBtn: { backgroundColor: '#ffebee', padding: '10px', borderRadius: '8px', marginBottom: '16px', borderStyle: 'dashed', borderWidth: '1px', borderColor: '#d32f2f', alignItems: 'center' },
+      deleteCatBtn: { backgroundColor: '#ffebee', padding: '10px', borderRadius: '8px', marginBottom: '16px', borderStyle: 'dashed', borderWidth: '1px', borderColor: '#d32f2F', alignItems: 'center' },
       deleteCatBtnT: { color: '#d32f2f', fontSize: '11px', fontWeight: 'bold', textAlign: 'center' },
       etfRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: '12px', paddingBottom: '8px', borderBottomWidth: '1px', borderBottomStyle: 'dashed', borderBottomColor: '#eee', alignItems: 'center' }
     };
