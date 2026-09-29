@@ -219,29 +219,6 @@
         catch (e) { Alert.alert("Error", "Save failed."); }
       };
 
-      const exportToPDF = async () => {
-        const formatCurrency = (val) => `₹${Number(val || 0).toLocaleString('en-IN', {maximumFractionDigits: 0})}`;
-        const htmlContent = `
-          <html>
-            <head><title>Audit Report</title><style>body { font-family: Helvetica, Arial, sans-serif; padding: 20px; } h1 { color: #004d40; border-bottom: 2px solid #004d40; padding-bottom: 10px;} table { width: 100%; border-collapse: collapse; margin-top: 20px; } th { background-color: #f2f2f2; padding: 10px; text-align: left; } td { border-bottom: 1px solid #ddd; padding: 10px; }</style></head>
-            <body>
-              <h1>Asset Audit Report</h1><p>Generated: ${new Date().toLocaleDateString()}</p><h3>Total Net Worth: ${formatCurrency(totalNetWorth)}</h3>
-              <table>
-                <tr><th>Asset</th><th>Units/Qty</th><th>Price/NAV</th><th>Value</th></tr>
-                <tr><td><b>Gold (24K)</b></td><td>${Number(data.tanishq.grams || 0).toFixed(2)}g</td><td>${data.tanishq.rate || 0}</td><td>${formatCurrency(Number(data.tanishq.grams || 0) * Number(data.tanishq.rate || 0))}</td></tr>
-                <tr><td><b>PPF</b></td><td>-</td><td>-</td><td>${formatCurrency(data.ppf)}</td></tr>
-                ${Object.entries(data.etfs).map(([name, v]) => `<tr><td>${name}</td><td>${v[0] || 0}</td><td>${v[1] \vert{}\vert{} 0}</td><td>${formatCurrency((v[0] || 0)*(v[1] || 0))}</td></tr>`).join('')}
-                ${Object.entries(data.categories).map(([cat, c]) => Object.entries(c.items).map(([k, v]) => `<tr><td>${k}</td><td>${v[0] || 0}</td><td>${v[1] \vert{}\vert{} 0}</td><td>${formatCurrency((v[0] || 0)*(v[1] || 0))}</td></tr>`).join('')).join('')}
-              </table>
-              <script>window.onload = function() { window.print(); window.close(); }<\/script>
-            </body>
-          </html>
-        `;
-        const printWindow = window.open('', '_blank');
-        if (printWindow) { printWindow.document.write(htmlContent); printWindow.document.close(); } 
-        else { Alert.alert("Pop-up Blocked", "Please allow pop-ups to generate PDF."); }
-      };
-
       const performBulkSync = async () => {
         setIsSyncing(true);
         try {
@@ -508,9 +485,6 @@
                 </View>
                 <TouchableOpacity style={styles.saveBtn} onPress={async () => { await savePortfolio(data); Alert.alert("Success", "Portfolio Locked."); }}>
                     <Text style={styles.saveBtnT}>💾 LOCK ALL CHANGES</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={{...styles.saveBtn, backgroundColor: '#1565c0', marginBottom: 20}} onPress={exportToPDF}>
-                    <Text style={styles.saveBtnT}>📄 EXPORT TO PDF</Text>
                 </TouchableOpacity>
                 <EditSection title="Core Assets" open={openEdit === 'core'} onToggle={() => setOpenEdit(openEdit === 'core' ? null : 'core')}>
                     <EditField label="PPF Balance" val={data.ppf} onC={(v) => updateAssetVal('ppf', null, null, v)} />
