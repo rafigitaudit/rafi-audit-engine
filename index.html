@@ -61,7 +61,7 @@
     const Linking = { openURL: (url) => window.open(url, '_blank') };
     const LayoutAnimation = { easeInEaseOut: () => {} };
 
-    const STORAGE_KEY = 'laskar_master_audit_v15';
+    const STORAGE_KEY = 'laskar_master_audit_v16';
 
     const initialData = {
       ppf: 890000,
@@ -179,7 +179,7 @@
         try {
           let newData = JSON.parse(JSON.stringify(data));
           
-          // Auto-fetch live Gold 24K, 22K and Silver benchmark rates from goldprice.org
+          // Auto-fetch live Gold 24K, 22K and Silver benchmark rates from goldprice.org via CORS proxy
           try {
             const goldRes = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://data-asg.goldprice.org/dbXRates/INR'));
             if(goldRes.ok) {
