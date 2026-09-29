@@ -28,7 +28,7 @@
     const SafeAreaView = ({style, children}) => <div style={{flex: 1, display: 'flex', flexDirection: 'column', ...style}}>{children}</div>;
     const Text = ({style, children}) => <span style={{display: 'inline-block', ...style}}>{children}</span>;
     const TouchableOpacity = ({style, onPress, children}) => <div onClick={onPress} style={{cursor: 'pointer', display: 'flex', flexDirection: 'column', ...style}}>{children}</div>;
-    const ActivityIndicator = () => <span style={{color: 'white', fontSize: 12}}>Loading...</span>;
+    const ActivityIndicator = () => <span style={{color: 'white', fontSize: 14}}>Loading...</span>;
     const StatusBar = () => null;
     
     const TextInput = ({style, placeholder, value, onChangeText, multiline, keyboardType, onEndEditing, defaultValue}) => {
@@ -219,84 +219,6 @@
         catch (e) { Alert.alert("Error", "Save failed."); }
       };
 
-      const performBulkSync = async () => {
-        setIsSyncing(true);
-        try {
-          const amfiUrl = `https://www.amfiindia.com/spages/NAVAll.txt?t=${new Date().getTime()}`;
-          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(amfiUrl)}`;
-          const res = await fetch(proxyUrl);
-          if (!res.ok) throw new Error("HTTP Status " + res.status);
-          const text = await res.text();
-          let newData = JSON.parse(JSON.stringify(data));
-          let isinMatchCount = 0;
-          let debugHUD = { lastIsinSearched: "None", matchFound: false, extractedNAV: "None" };
-
-          const runSync = (list) => {
-            Object.keys(list).forEach(name => {
-              if (name === 'Nippon Gold BeES' || name === 'ICICI Silver ETF') return;
-              let isin = list[name][2]; 
-              const lowerName = name.toLowerCase();
-              for (const [key, mappedIsin] of Object.entries(universalISINMap)) {
-                  if (lowerName.includes(key)) { isin = mappedIsin; list[name][2] = isin; break; }
-              }
-              if (!isin || isin.trim() === '') return;
-              const safeIsin = isin.trim();
-              debugHUD.lastIsinSearched = safeIsin;
-              const regex = new RegExp(`^.*${safeIsin}.*$`, 'im');
-              const rawMatch = text.match(regex);
-              
-              if (rawMatch) {
-                  debugHUD.matchFound = true;
-                  const matchedLine = rawMatch[0];
-                  const delimiter = matchedLine.includes(';') ? ';' : ',';
-                  const parts = matchedLine.split(delimiter);
-                  if (parts.length >= 4) {
-                      let navIndex = parts.length - 2;
-                      let navStr = parts[navIndex] ? parts[navIndex].replace(/[^0-9.]/g, '') : '';
-                      let parsedNav = parseFloat(navStr);
-                      debugHUD.extractedNAV = parsedNav;
-                      if (!isNaN(parsedNav) && parsedNav > 0) { list[name][1] = parsedNav; isinMatchCount++; }
-                  }
-              }
-            });
-          };
-
-          Object.values(newData.categories).forEach(cat => cat.items && runSync(cat.items));
-          runSync(newData.etfs);
-
-          const newsSources = [
-            'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms',
-            'https://www.livemint.com/rss/markets',
-            'https://www.moneycontrol.com/rss/marketnews.xml',
-            'https://www.cnbctv18.com/commonfeeds/v1/rss/market.xml'
-          ];
-          const allNews = [];
-          const excludedFromAlerts = ['Nippon Gold BeES', 'ICICI Silver ETF'];
-          const keywords = [...Object.keys(newData.etfs), ...Object.values(newData.categories).flatMap(c => Object.keys(c.items))].filter(name => !excludedFromAlerts.includes(name)).map(n => n.split(' ')[0].toUpperCase());
-          
-          for (let url of newsSources) {
-            try {
-              const nRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
-              const nText = await nRes.text();
-              const items = nText.split('<item>').slice(1, 10);
-              items.forEach(b => {
-                const title = b.match(/<title>(.*?)<\/title>/)?.[1].replace(/<!\[CDATA\[\vert{}\]\]>/g, '') || "";
-                const link = b.match(/<link>(.*?)<\/link>/)?.[1].replace(/<!\[CDATA\[\vert{}\]\]>/g, '').trim() || "";
-                if (keywords.some(k => title.toUpperCase().includes(k))) allNews.push({ id: Math.random().toString(), m: title, l: link });
-              });
-            } catch (e) {}
-          }
-          setNewsAlerts(allNews.slice(0, 15));
-          newData.syncDate = new Date().toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'});
-          setData(newData);
-          await savePortfolio(newData);
-          
-          if (isinMatchCount > 0) Alert.alert("Sync Success", `Updated NAV for ${isinMatchCount} Mutual Funds & fetched Market News.`);
-          else Alert.alert("Sync Diagnostics", `Checked ISIN: ${debugHUD.lastIsinSearched}\nFound? ${debugHUD.matchFound}`);
-        } catch (e) { Alert.alert("Sync Error", "Could not connect to servers."); } 
-        finally { setIsSyncing(false); }
-      };
-
       const syncFromSheets = async () => {
         if (!sheetsInput || sheetsInput.trim() === "") { Alert.alert("Error", "Sync box is empty."); return; }
         try {
@@ -389,12 +311,9 @@
           <View style={styles.header}>
             <View style={{flex: 1}}>
               <Text style={styles.headerTitle}>{activeTab.toUpperCase()}</Text>
-              <Text style={styles.headerSub}>RAFI'S AUDIT ENGINE v2026.10 (WEB)</Text>
+              <Text style={styles.headerSub}>RAFI'S AUDIT ENGINE v2026.10</Text>
             </View>
             <View style={styles.headerIcons}>
-              <TouchableOpacity onPress={performBulkSync} style={styles.iconBtn}>
-                {isSyncing ? <ActivityIndicator /> : <Text style={styles.iconText}>🔄</Text>}
-              </TouchableOpacity>
               <TouchableOpacity onPress={() => setShowValue(!showValue)} style={styles.iconBtn}>
                 <Text style={styles.iconText}>{showValue ? "👁️" : "🙈"}</Text>
               </TouchableOpacity>
@@ -467,8 +386,8 @@
 
             {activeTab === 'Alerts' && (
               <View>
-                <Text style={styles.secTitle}>MULTI-SOURCE INTELLIGENCE (ET, MC, LM, CNBC)</Text>
-                {newsAlerts.length === 0 ? <Text style={styles.emptyText}>Tap 🔄 to fetch reports.</Text> : newsAlerts.map(a => (
+                <Text style={styles.secTitle}>MULTI-SOURCE INTELLIGENCE</Text>
+                {newsAlerts.length === 0 ? <Text style={styles.emptyText}>Tap Sync to fetch market reports.</Text> : newsAlerts.map(a => (
                   <TouchableOpacity key={a.id} style={styles.alertCard} onPress={() => Linking.openURL(a.l)}>
                     <Text style={styles.alertMsg}>• {a.m}</Text>
                     <Text style={styles.linkText}>READ FULL REPORT ↗</Text>
@@ -480,7 +399,8 @@
             {activeTab === 'Edit' && (
               <View>
                 <View style={styles.sheetsBox}>
-                    <TextInput style={styles.sheetsInput} placeholder="Paste Master Sync Block Here" multiline value={sheetsInput} onChangeText={setSheetsInput} />
+                    <Text style={styles.newCatTitle}>MASTER SYNC BOX</Text>
+                    <TextInput style={styles.sheetsInput} placeholder="Paste your block here..." multiline value={sheetsInput} onChangeText={setSheetsInput} />
                     <TouchableOpacity onPress={syncFromSheets} style={styles.newCatBtn}><Text style={styles.newCatBtnT}>SYNC DATA</Text></TouchableOpacity>
                 </View>
                 <TouchableOpacity style={styles.saveBtn} onPress={async () => { await savePortfolio(data); Alert.alert("Success", "Portfolio Locked."); }}>
@@ -534,7 +454,7 @@
     );
     const HoldingsGroup = ({ title, items, type, open, onToggle, show }) => (
       <View style={styles.collapseBox}>
-        <TouchableOpacity onPress={() => onToggle()} style={styles.collapseHeader}><Text style={styles.collapseTitle}>{title.toUpperCase()}</Text><Text>{open ? '−' : '+'}</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => onToggle()} style={styles.collapseHeader}><Text style={styles.collapseTitle}>{title.toUpperCase()}</Text><Text style={{fontSize: '16px', fontWeight: 'bold'}}>{open ? '−' : '+'}</Text></TouchableOpacity>
         {open && Object.entries(items).map(([k, v]) => (
           <View key={k} style={styles.detailRow}>
             <View style={{flex: 1.5}}><Text style={styles.detailName}>{k}</Text><Text style={styles.ltpLabel}>NAV: ₹{Number(v[1] || 0).toFixed(2)}</Text></View>
@@ -544,10 +464,10 @@
       </View>
     );
     const EditSection = ({ title, open, onToggle, children }) => (
-      <View style={styles.editBox}><TouchableOpacity onPress={() => onToggle()} style={styles.editHeader}><Text style={styles.editTitle}>{title.toUpperCase()}</Text><Text>{open ? '▲' : '▼'}</Text></TouchableOpacity>{open && <View style={styles.editContent}>{children}</View>}</View>
+      <View style={styles.editBox}><TouchableOpacity onPress={() => onToggle()} style={styles.editHeader}><Text style={styles.editTitle}>{title.toUpperCase()}</Text><Text style={{fontSize: '14px', fontWeight: 'bold'}}>{open ? '▲' : '▼'}</Text></TouchableOpacity>{open && <View style={styles.editContent}>{children}</View>}</View>
     );
     const EditField = ({ label, val, onC }) => (
-      <View style={{marginBottom: 10}}><Text style={styles.inputLabel}>{label}</Text><TextInput style={styles.input} keyboardType="numeric" defaultValue={val?.toString()} onEndEditing={(e) => onC(e.nativeEvent.text)} /></View>
+      <View style={{marginBottom: 12}}><Text style={styles.inputLabel}>{label}</Text><TextInput style={styles.input} keyboardType="numeric" defaultValue={val?.toString()} onEndEditing={(e) => onC(e.nativeEvent.text)} /></View>
     );
     const AddItemForm = ({ onAdd, unit }) => {
       const [n, setN] = useState(''); const [q, setQ] = useState('');
@@ -563,72 +483,72 @@
     const styles = {
       container: { flex: 1, backgroundColor: '#f4f7f9' },
       header: { padding: '20px', backgroundColor: '#004d40', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: '60px' },
-      headerTitle: { color: '#fff', fontWeight: 'bold', fontSize: '24px' },
-      headerSub: { color: '#b2dfdb', fontSize: '10px', fontWeight: 'bold', marginTop: '4px' },
+      headerTitle: { color: '#fff', fontWeight: 'bold', fontSize: '22px' },
+      headerSub: { color: '#b2dfdb', fontSize: '11px', fontWeight: 'bold', marginTop: '4px' },
       headerIcons: { flexDirection: 'row', display: 'flex' },
       iconBtn: { marginLeft: '15px' },
-      iconText: { fontSize: '20px' },
+      iconText: { fontSize: '24px' },
       tabs: { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: '1px', borderBottomStyle: 'solid', borderBottomColor: '#eee' },
-      tab: { flex: 1, padding: '15px', alignItems: 'center' },
+      tab: { flex: 1, padding: '16px', alignItems: 'center' },
       tabActive: { borderBottomWidth: '3px', borderBottomStyle: 'solid', borderBottomColor: '#004d40' },
-      tabText: { fontSize: '10px', fontWeight: 'bold', color: '#999' },
-      tabTextActive: { color: '#004d40' },
-      body: { padding: '15px' },
-      wealthCard: { backgroundColor: '#fff', padding: '25px', borderRadius: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)', marginBottom: '15px' },
-      allocationCard: { backgroundColor: '#fff', padding: '20px', borderRadius: '16px', marginBottom: '15px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' },
-      progressBar: { height: '12px', borderRadius: '6px', flexDirection: 'row', overflow: 'hidden', marginVertical: '10px', backgroundColor: '#eee', marginTop: '10px', marginBottom: '10px' },
+      tabText: { fontSize: '12px', fontWeight: 'bold', color: '#888' },
+      tabTextActive: { color: '#004d40', fontSize: '13px' },
+      body: { padding: '16px' },
+      wealthCard: { backgroundColor: '#fff', padding: '25px', borderRadius: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)', marginBottom: '16px' },
+      allocationCard: { backgroundColor: '#fff', padding: '20px', borderRadius: '16px', marginBottom: '16px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' },
+      progressBar: { height: '14px', borderRadius: '7px', flexDirection: 'row', overflow: 'hidden', marginVertical: '10px', backgroundColor: '#eee' },
       progressSegment: { height: '100%' },
-      allocationLegend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px', flexWrap: 'wrap' },
-      legendItem: { flexDirection: 'row', alignItems: 'center', marginRight: '10px', marginTop: '4px' },
-      legendDot: { width: '8px', height: '8px', borderRadius: '4px', marginRight: '5px' },
-      legendText: { fontSize: '10px', color: '#444', fontWeight: '500' },
-      label: { fontSize: '9px', color: '#888', fontWeight: 'bold' },
-      totalValue: { fontSize: '32px', fontWeight: 'bold', color: '#004d40', marginVertical: '8px', marginTop: '8px', marginBottom: '8px' },
-      marketPill: { backgroundColor: '#e3f2fd', padding: '5px', borderRadius: '5px', alignSelf: 'flex-start' },
-      marketText: { color: '#1565c0', fontSize: '10px', fontWeight: 'bold' },
+      allocationLegend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: '8px', flexWrap: 'wrap' },
+      legendItem: { flexDirection: 'row', alignItems: 'center', marginRight: '10px', marginTop: '6px' },
+      legendDot: { width: '10px', height: '10px', borderRadius: '5px', marginRight: '6px' },
+      legendText: { fontSize: '12px', color: '#333', fontWeight: '600' },
+      label: { fontSize: '11px', color: '#666', fontWeight: 'bold' },
+      totalValue: { fontSize: '36px', fontWeight: 'bold', color: '#004d40', marginVertical: '8px' },
+      marketPill: { backgroundColor: '#e3f2fd', padding: '6px 10px', borderRadius: '6px', alignSelf: 'flex-start' },
+      marketText: { color: '#1565c0', fontSize: '11px', fontWeight: 'bold' },
       grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-      sCard: { backgroundColor: '#fff', padding: '12px', borderRadius: '10px', width: '48%', marginBottom: '10px', borderLeftWidth: '4px', borderLeftStyle: 'solid', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' },
-      sLabel: { fontSize: '10px', color: '#666', marginBottom: '5px' },
-      sVal: { fontSize: '14px', fontWeight: 'bold', color: '#333' },
-      assetCard: { backgroundColor: '#fff', padding: '15px', borderRadius: '12px', marginBottom: '8px', borderLeftWidth: '5px', borderLeftStyle: 'solid', borderLeftColor: '#004d40' },
-      assetLabel: { fontSize: '9px', color: '#888', fontWeight: 'bold' },
-      assetVal: { fontSize: '16px', fontWeight: 'bold', color: '#1a1a1a', marginTop: '4px' },
-      secTitle: { fontSize: '11px', fontWeight: 'bold', color: '#004d40', marginBottom: '5px' },
-      ltpLabel: { fontSize: '9px', color: '#d32f2f' },
-      rupeeValDetail: { fontSize: '12px', fontWeight: 'bold', color: '#004d40' },
-      collapseBox: { backgroundColor: '#fff', borderRadius: '12px', marginBottom: '10px', overflow: 'hidden' },
-      collapseHeader: { padding: '15px', flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#fdfdfd' },
-      collapseTitle: { fontWeight: 'bold', fontSize: '12px', color: '#444' },
-      detailRow: { flexDirection: 'row', justifyContent: 'space-between', padding: '12px', borderTopWidth: '1px', borderTopStyle: 'solid', borderTopColor: '#f0f0f0', alignItems: 'center' },
-      detailName: { fontSize: '11px', color: '#333', fontWeight: '500' },
-      detailVal: { fontSize: '10px', color: '#666' },
-      alertCard: { backgroundColor: '#fff', padding: '15px', borderRadius: '12px', marginBottom: '10px', borderLeftWidth: '5px', borderLeftStyle: 'solid', borderLeftColor: '#1565c0' },
-      alertMsg: { fontSize: '12px', color: '#444', lineHeight: '20px' },
-      linkText: { color: '#1565c0', fontSize: '9px', marginTop: '5px', fontWeight: 'bold', textDecoration: 'underline' },
-      emptyText: { fontSize: '12px', color: '#999', textAlign: 'center', marginTop: '50px' },
-      saveBtn: { backgroundColor: '#004d40', padding: '15px', borderRadius: '12px', marginBottom: '20px', alignItems: 'center', justifyContent: 'center' },
-      saveBtnT: { color: '#fff', fontWeight: 'bold' },
-      sheetsBox: { backgroundColor: '#e0f2f1', padding: '15px', borderRadius: '12px', marginBottom: '15px' },
-      newCatBox: { backgroundColor: '#e0f2f1', padding: '15px', borderRadius: '12px', marginTop: '10px' },
-      newCatTitle: { fontSize: '10px', fontWeight: 'bold', color: '#004d40', marginBottom: '8px' },
-      newCatBtn: { backgroundColor: '#004d40', padding: '10px', borderRadius: '8px', marginTop: '10px', alignItems: 'center', justifyContent: 'center' },
-      newCatBtnT: { color: '#fff', fontWeight: 'bold', fontSize: '11px' },
-      sheetsInput: { backgroundColor: '#fff', padding: '10px', borderRadius: '8px', height: '60px', fontSize: '12px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#b2dfdb', outline: 'none' },
-      delBtn: { marginLeft: '10px', padding: '10px', backgroundColor: '#ffebee', borderRadius: '8px', alignItems: 'center', justifyContent: 'center' },
-      delText: { color: '#d32f2f', fontWeight: 'bold' },
-      addForm: { flexDirection: 'row', marginTop: '10px', borderTopWidth: '1px', borderTopStyle: 'solid', borderTopColor: '#eee', paddingTop: '15px', alignItems: 'center' },
-      addBtn: { marginLeft: '5px', backgroundColor: '#00796b', padding: '10px', borderRadius: '8px', alignItems: 'center', justifyContent: 'center', width: '40px' },
-      addBtnT: { color: '#fff', fontWeight: 'bold', fontSize: '18px' },
-      editBox: { backgroundColor: '#fff', borderRadius: '12px', marginBottom: '10px', overflow: 'hidden' },
-      editHeader: { padding: '15px', flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#fafafa' },
-      editTitle: { fontWeight: 'bold', fontSize: '11px', color: '#00796b' },
-      editContent: { padding: '10px' },
-      editRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: '15px' },
-      inputLabel: { fontSize: '9px', color: '#999', marginBottom: '4px' },
-      input: { backgroundColor: '#fff', padding: '10px', borderRadius: '8px', fontSize: '14px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#ddd', outline: 'none' },
-      deleteCatBtn: { backgroundColor: '#ffebee', padding: '8px', borderRadius: '5px', marginBottom: '15px', borderStyle: 'dashed', borderWidth: '1px', borderColor: '#d32f2f', alignItems: 'center' },
-      deleteCatBtnT: { color: '#d32f2f', fontSize: '9px', fontWeight: 'bold', textAlign: 'center' },
-      etfRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: '10px', paddingBottom: '5px', borderBottomWidth: '1px', borderBottomStyle: 'dashed', borderBottomColor: '#eee' }
+      sCard: { backgroundColor: '#fff', padding: '16px', borderRadius: '12px', width: '48%', marginBottom: '12px', borderLeftWidth: '5px', borderLeftStyle: 'solid', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' },
+      sLabel: { fontSize: '12px', color: '#555', marginBottom: '6px', fontWeight: 'bold' },
+      sVal: { fontSize: '16px', fontWeight: 'bold', color: '#222' },
+      assetCard: { backgroundColor: '#fff', padding: '18px', borderRadius: '14px', marginBottom: '12px', borderLeftWidth: '6px', borderLeftStyle: 'solid', borderLeftColor: '#004d40' },
+      assetLabel: { fontSize: '11px', color: '#666', fontWeight: 'bold' },
+      assetVal: { fontSize: '18px', fontWeight: 'bold', color: '#1a1a1a', marginTop: '6px' },
+      secTitle: { fontSize: '13px', fontWeight: 'bold', color: '#004d40', marginBottom: '8px' },
+      ltpLabel: { fontSize: '11px', color: '#d32f2f', fontWeight: '600', marginTop: '2px' },
+      rupeeValDetail: { fontSize: '14px', fontWeight: 'bold', color: '#004d40' },
+      collapseBox: { backgroundColor: '#fff', borderRadius: '14px', marginBottom: '12px', overflow: 'hidden' },
+      collapseHeader: { padding: '18px', flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#fdfdfd', alignItems: 'center' },
+      collapseTitle: { fontWeight: 'bold', fontSize: '13px', color: '#333' },
+      detailRow: { flexDirection: 'row', justifyContent: 'space-between', padding: '14px 18px', borderTopWidth: '1px', borderTopStyle: 'solid', borderTopColor: '#f0f0f0', alignItems: 'center' },
+      detailName: { fontSize: '13px', color: '#222', fontWeight: '600' },
+      detailVal: { fontSize: '12px', color: '#555', fontWeight: '600' },
+      alertCard: { backgroundColor: '#fff', padding: '18px', borderRadius: '14px', marginBottom: '12px', borderLeftWidth: '6px', borderLeftStyle: 'solid', borderLeftColor: '#1565c0' },
+      alertMsg: { fontSize: '13px', color: '#333', lineHeight: '22px', fontWeight: '500' },
+      linkText: { color: '#1565c0', fontSize: '11px', marginTop: '8px', fontWeight: 'bold', textDecoration: 'underline' },
+      emptyText: { fontSize: '14px', color: '#888', textAlign: 'center', marginTop: '50px' },
+      saveBtn: { backgroundColor: '#004d40', padding: '18px', borderRadius: '14px', marginBottom: '20px', alignItems: 'center', justifyContent: 'center' },
+      saveBtnT: { color: '#fff', fontWeight: 'bold', fontSize: '14px' },
+      sheetsBox: { backgroundColor: '#e0f2f1', padding: '18px', borderRadius: '14px', marginBottom: '16px' },
+      newCatBox: { backgroundColor: '#e0f2f1', padding: '18px', borderRadius: '14px', marginTop: '12px' },
+      newCatTitle: { fontSize: '12px', fontWeight: 'bold', color: '#004d40', marginBottom: '8px' },
+      newCatBtn: { backgroundColor: '#004d40', padding: '12px', borderRadius: '10px', marginTop: '12px', alignItems: 'center', justifyContent: 'center' },
+      newCatBtnT: { color: '#fff', fontWeight: 'bold', fontSize: '12px' },
+      sheetsInput: { backgroundColor: '#fff', padding: '12px', borderRadius: '10px', height: '80px', fontSize: '13px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#b2dfdb', outline: 'none' },
+      delBtn: { marginLeft: '10px', padding: '12px', backgroundColor: '#ffebee', borderRadius: '10px', alignItems: 'center', justifyContent: 'center' },
+      delText: { color: '#d32f2f', fontWeight: 'bold', fontSize: '14px' },
+      addForm: { flexDirection: 'row', marginTop: '12px', borderTopWidth: '1px', borderTopStyle: 'solid', borderTopColor: '#eee', paddingTop: '16px', alignItems: 'center' },
+      addBtn: { marginLeft: '6px', backgroundColor: '#00796b', padding: '12px', borderRadius: '10px', alignItems: 'center', justifyContent: 'center', width: '45px' },
+      addBtnT: { color: '#fff', fontWeight: 'bold', fontSize: '20px' },
+      editBox: { backgroundColor: '#fff', borderRadius: '14px', marginBottom: '12px', overflow: 'hidden' },
+      editHeader: { padding: '18px', flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#fafafa', alignItems: 'center' },
+      editTitle: { fontWeight: 'bold', fontSize: '12px', color: '#00796b' },
+      editContent: { padding: '14px' },
+      editRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: '16px' },
+      inputLabel: { fontSize: '11px', color: '#666', marginBottom: '6px', fontWeight: 'bold' },
+      input: { backgroundColor: '#fff', padding: '12px', borderRadius: '10px', fontSize: '15px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#ddd', outline: 'none' },
+      deleteCatBtn: { backgroundColor: '#ffebee', padding: '10px', borderRadius: '8px', marginBottom: '16px', borderStyle: 'dashed', borderWidth: '1px', borderColor: '#d32f2f', alignItems: 'center' },
+      deleteCatBtnT: { color: '#d32f2f', fontSize: '11px', fontWeight: 'bold', textAlign: 'center' },
+      etfRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: '12px', paddingBottom: '8px', borderBottomWidth: '1px', borderBottomStyle: 'dashed', borderBottomColor: '#eee', alignItems: 'center' }
     };
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
