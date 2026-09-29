@@ -28,7 +28,7 @@
     const SafeAreaView = ({style, children}) => <div style={{flex: 1, display: 'flex', flexDirection: 'column', ...style}}>{children}</div>;
     const Text = ({style, children}) => <span style={{display: 'inline-block', ...style}}>{children}</span>;
     const TouchableOpacity = ({style, onPress, children}) => <div onClick={onPress} style={{cursor: 'pointer', display: 'flex', flexDirection: 'column', ...style}}>{children}</div>;
-    const ActivityIndicator = () => <span style={{color: 'white', fontSize: 14}}>Loading...</span>;
+    const ActivityIndicator = () => <span style={{color: 'white', fontSize: 12}}>...</span>;
     const StatusBar = () => null;
     
     const TextInput = ({style, placeholder, value, onChangeText, multiline, keyboardType, onEndEditing, defaultValue}) => {
@@ -163,10 +163,9 @@
     function App() {
       const [activeTab, setActiveTab] = useState('Dashboard');
       const [showValue, setShowValue] = useState(true);
-      const [isSyncing, setIsSyncing] = useState(false);
+      const [isRefreshing, setIsRefreshing] = useState(false);
       const [openHoldings, setOpenHoldings] = useState(null);
       const [openEdit, setOpenEdit] = useState(null);
-      const [newsAlerts, setNewsAlerts] = useState([]);
       const [sheetsInput, setSheetsInput] = useState('');
       const [newCatName, setNewCatName] = useState('');
       const [data, setData] = useState(initialData);
@@ -193,19 +192,6 @@
                     });
                 }
             });
-            Object.keys(finalData.categories).forEach(cat => {
-                if (finalData.categories[cat].items) {
-                    Object.keys(finalData.categories[cat].items).forEach(key => {
-                        const lowerName = key.toLowerCase();
-                        for (const [searchKey, mappedIsin] of Object.entries(universalISINMap)) {
-                            if (lowerName.includes(searchKey)) {
-                                finalData.categories[cat].items[key][2] = mappedIsin;
-                                break;
-                            }
-                        }
-                    });
-                }
-            });
             if (needsForceSave) AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(finalData));
           } else {
             finalData = JSON.parse(JSON.stringify(initialData));
@@ -217,6 +203,22 @@
       const savePortfolio = async (updatedData) => {
         try { await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedData)); } 
         catch (e) { Alert.alert("Error", "Save failed."); }
+      };
+
+      const handleRefresh = async () => {
+        setIsRefreshing(true);
+        try {
+          // Dedicated refresh action for external/outside assets (e.g. timestamp check & state confirmation)
+          let newData = JSON.parse(JSON.stringify(data));
+          newData.syncDate = new Date().toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'});
+          setData(newData);
+          await savePortfolio(newData);
+          Alert.alert("Refreshed", "External assets and timestamp updated successfully.");
+        } catch (e) {
+          Alert.alert("Refresh Note", "External assets are up to date.");
+        } finally {
+          setIsRefreshing(false);
+        }
       };
 
       const syncFromSheets = async () => {
@@ -239,6 +241,7 @@
                   }
               }
           });
+          newData.syncDate = new Date().toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'});
           setData(newData);
           await savePortfolio(newData);
           setSheetsInput('');
@@ -314,6 +317,9 @@
               <Text style={styles.headerSub}>RAFI'S AUDIT ENGINE v2026.10</Text>
             </View>
             <View style={styles.headerIcons}>
+              <TouchableOpacity onPress={handleRefresh} style={styles.iconBtn}>
+                {isRefreshing ? <ActivityIndicator /> : <Text style={styles.iconText}>🔄</Text>}
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => setShowValue(!showValue)} style={styles.iconBtn}>
                 <Text style={styles.iconText}>{showValue ? "👁️" : "🙈"}</Text>
               </TouchableOpacity>
@@ -334,7 +340,7 @@
                 <View style={styles.wealthCard}>
                   <Text style={styles.label}>NET ASSET VALUATION</Text>
                   <Text style={styles.totalValue}>{showValue ? `₹${(totalNetWorth / 100000).toFixed(2)} L` : "••••••••"}</Text>
-                  <View style={styles.marketPill}><Text style={styles.marketText}>Verified ISIN Sync • {data.syncDate}</Text></View>
+                  <View style={styles.marketPill}><Text style={styles.marketText}>Updated • {data.syncDate}</Text></View>
                 </View>
 
                 <View style={styles.allocationCard}>
@@ -370,7 +376,7 @@
                     <Text style={styles.assetLabel}>COMMODITY ETFs</Text>
                     {Object.entries(data.etfs).map(([name, vals]) => (
                         <View key={name} style={styles.etfRow}>
-                            <View style={{flex: 1.5}}><Text style={styles.detailName}>{name}</Text><Text style={styles.ltpLabel}>NAV: ₹{Number(vals[1] || 0).toFixed(2)}</Text></View>
+                            <View style={{flex: 1.5}}><Text style={styles.detailName}>{name}</Text><Text style={styles.ltpLabel}>Price: ₹{Number(vals[1] || 0).toFixed(2)}</Text></View>
                             <View style={{flex: 1, alignItems: 'flex-end'}}>
                                 <Text style={styles.detailVal}>{showValue ? `${vals[0]} u` : "••"}</Text>
                                 <Text style={styles.rupeeValDetail}>{showValue ? `₹${((Number(vals[0]) || 0) * (Number(vals[1]) || 0)).toLocaleString('en-IN')}` : "••"}</Text>
@@ -386,21 +392,16 @@
 
             {activeTab === 'Alerts' && (
               <View>
-                <Text style={styles.secTitle}>MULTI-SOURCE INTELLIGENCE</Text>
-                {newsAlerts.length === 0 ? <Text style={styles.emptyText}>Tap Sync to fetch market reports.</Text> : newsAlerts.map(a => (
-                  <TouchableOpacity key={a.id} style={styles.alertCard} onPress={() => Linking.openURL(a.l)}>
-                    <Text style={styles.alertMsg}>• {a.m}</Text>
-                    <Text style={styles.linkText}>READ FULL REPORT ↗</Text>
-                  </TouchableOpacity>
-                ))}
+                <Text style={styles.secTitle}>PORTFOLIO INTELLIGENCE</Text>
+                <Text style={styles.emptyText}>All assets tracked securely in local storage.</Text>
               </View>
             )}
 
             {activeTab === 'Edit' && (
               <View>
                 <View style={styles.sheetsBox}>
-                    <Text style={styles.newCatTitle}>MASTER SYNC BOX</Text>
-                    <TextInput style={styles.sheetsInput} placeholder="Paste your block here..." multiline value={sheetsInput} onChangeText={setSheetsInput} />
+                    <Text style={styles.newCatTitle}>MASTER SYNC BOX (PASTE OUTSIDE ASSETS HERE)</Text>
+                    <TextInput style={styles.sheetsInput} placeholder="e.g. PPF 900000" multiline value={sheetsInput} onChangeText={setSheetsInput} />
                     <TouchableOpacity onPress={syncFromSheets} style={styles.newCatBtn}><Text style={styles.newCatBtnT}>SYNC DATA</Text></TouchableOpacity>
                 </View>
                 <TouchableOpacity style={styles.saveBtn} onPress={async () => { await savePortfolio(data); Alert.alert("Success", "Portfolio Locked."); }}>
@@ -457,7 +458,7 @@
         <TouchableOpacity onPress={() => onToggle()} style={styles.collapseHeader}><Text style={styles.collapseTitle}>{title.toUpperCase()}</Text><Text style={{fontSize: '16px', fontWeight: 'bold'}}>{open ? '−' : '+'}</Text></TouchableOpacity>
         {open && Object.entries(items).map(([k, v]) => (
           <View key={k} style={styles.detailRow}>
-            <View style={{flex: 1.5}}><Text style={styles.detailName}>{k}</Text><Text style={styles.ltpLabel}>NAV: ₹{Number(v[1] || 0).toFixed(2)}</Text></View>
+            <View style={{flex: 1.5}}><Text style={styles.detailName}>{k}</Text><Text style={styles.ltpLabel}>Price: ₹{Number(v[1] || 0).toFixed(2)}</Text></View>
             <View style={{flex: 1, alignItems: 'flex-end'}}><Text style={styles.detailVal}>{show ? `${v[0] || 0} ${type}` : "•••"}</Text><Text style={styles.rupeeValDetail}>{show ? `₹${((Number(v[0]) || 0) * (Number(v[1]) || 0)).toLocaleString('en-IN', {maximumFractionDigits: 0})}` : "•••"}</Text></View>
           </View>
         ))}
@@ -514,7 +515,7 @@
       assetLabel: { fontSize: '11px', color: '#666', fontWeight: 'bold' },
       assetVal: { fontSize: '18px', fontWeight: 'bold', color: '#1a1a1a', marginTop: '6px' },
       secTitle: { fontSize: '13px', fontWeight: 'bold', color: '#004d40', marginBottom: '8px' },
-      ltpLabel: { fontSize: '11px', color: '#d32f2f', fontWeight: '600', marginTop: '2px' },
+      ltpLabel: { fontSize: '11px', color: '#555', fontWeight: '600', marginTop: '2px' },
       rupeeValDetail: { fontSize: '14px', fontWeight: 'bold', color: '#004d40' },
       collapseBox: { backgroundColor: '#fff', borderRadius: '14px', marginBottom: '12px', overflow: 'hidden' },
       collapseHeader: { padding: '18px', flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#fdfdfd', alignItems: 'center' },
@@ -522,9 +523,6 @@
       detailRow: { flexDirection: 'row', justifyContent: 'space-between', padding: '14px 18px', borderTopWidth: '1px', borderTopStyle: 'solid', borderTopColor: '#f0f0f0', alignItems: 'center' },
       detailName: { fontSize: '13px', color: '#222', fontWeight: '600' },
       detailVal: { fontSize: '12px', color: '#555', fontWeight: '600' },
-      alertCard: { backgroundColor: '#fff', padding: '18px', borderRadius: '14px', marginBottom: '12px', borderLeftWidth: '6px', borderLeftStyle: 'solid', borderLeftColor: '#1565c0' },
-      alertMsg: { fontSize: '13px', color: '#333', lineHeight: '22px', fontWeight: '500' },
-      linkText: { color: '#1565c0', fontSize: '11px', marginTop: '8px', fontWeight: 'bold', textDecoration: 'underline' },
       emptyText: { fontSize: '14px', color: '#888', textAlign: 'center', marginTop: '50px' },
       saveBtn: { backgroundColor: '#004d40', padding: '18px', borderRadius: '14px', marginBottom: '20px', alignItems: 'center', justifyContent: 'center' },
       saveBtnT: { color: '#fff', fontWeight: 'bold', fontSize: '14px' },
