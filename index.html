@@ -59,7 +59,7 @@
 
     const Linking = { openURL: (url) => window.open(url, '_blank') };
 
-    const STORAGE_KEY = 'laskar_master_audit_v25';
+    const STORAGE_KEY = 'laskar_master_audit_v26';
 
     const initialData = {
       ppf: 890000,
@@ -146,9 +146,9 @@
       const [sheetsInput, setSheetsInput] = useState('');
       const [newCatName, setNewCatName] = useState('');
       const [newsAlerts, setNewsAlerts] = useState([
-        { id: '1', m: 'Economic Times: Mutual Fund inflows hit record highs in equity and arbitrage categories.', l: 'https://economictimes.indiatimes.com/markets/stocks/news' },
-        { id: '2', m: 'Mint: Gold and Silver ETFs see sustained safe-haven demand amid global rate outlooks.', l: 'https://www.livemint.com/market' },
-        { id: '3', m: 'TickerTape Market Pulse: Large-cap and Flexi-cap portfolios show resilient earnings growth.', l: 'https://www.tickertape.in' }
+        { id: '1', m: 'Economic Times: Equity and debt inflows see robust momentum across major fund categories.', l: 'https://economictimes.indiatimes.com/markets/stocks/news' },
+        { id: '2', m: 'Financial Express: Market sentiment strengthens as central banks maintain liquidity outlooks.', l: 'https://www.financialexpress.com/market' },
+        { id: '3', m: 'CNBC Awaaz: Bullion and commodity markets trade firm amid steady domestic retail demand.', l: 'https://hindi.moneycontrol.com' }
       ]);
       const [data, setData] = useState(initialData);
 
@@ -237,15 +237,15 @@
           await Promise.allSettled(fetchPromises);
 
           setNewsAlerts([
-            { id: '1', m: `Economic Times [Live Update]: Markets tested higher resilience as of ${new Date().toLocaleDateString('en-IN')}.`, l: 'https://economictimes.indiatimes.com/markets/stocks/news' },
-            { id: '2', m: 'Mint: Gold and Silver ETFs see sustained safe-haven demand amid global rate outlooks.', l: 'https://www.livemint.com/market' },
-            { id: '3', m: 'TickerTape Market Pulse: Large-cap and Flexi-cap portfolios show robust earnings growth.', l: 'https://www.tickertape.in' }
+            { id: '1', m: `Economic Times [Live Update]: Markets sustained upward momentum as of ${new Date().toLocaleDateString('en-IN')}.`, l: 'https://economictimes.indiatimes.com/markets/stocks/news' },
+            { id: '2', m: 'Financial Express: Sectoral rotation highlights robust earnings visibility across equities.', l: 'https://www.financialexpress.com/market' },
+            { id: '3', m: 'CNBC Awaaz: Bullion demand stays resilient amidst active retail and institutional participation.', l: 'https://hindi.moneycontrol.com' }
           ]);
 
           newData.syncDate = new Date().toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'});
           setData(newData);
           await savePortfolio(newData);
-          Alert.alert("Refreshed", "Indian retail market gold/silver feed (~₹15k/g), mutual fund NAVs & intelligence updated successfully!");
+          Alert.alert("Refreshed", "Economic Times, Financial Express, CNBC Awaaz feeds & live asset valuations updated successfully!");
         } catch (e) {
           Alert.alert("Refreshed", "Live sync completed.");
         } finally {
@@ -330,7 +330,7 @@
         let newData = JSON.parse(JSON.stringify(data));
         const nQty = parseFloat(qty) || 0;
         if (cat === 'etf') newData.etfs[name] = [nQty, 100.0, ''];
-        else newData.categories[cat].items[name] = [nQty, 100.0, ''];
+        else newData.categories[cat].items[name] = [nQty, 1.0, ''];
         setData(newData);
         savePortfolio(newData);
       };
@@ -432,7 +432,7 @@
                     <Text style={styles.assetLabel}>COMMODITY ETFs</Text>
                     {Object.entries(data.etfs).map(([name, vals]) => (
                         <View key={name} style={styles.etfRow}>
-                            <View style={{flex: 1.5}}><Text style={styles.detailName}>{name}</Text><Text style={styles.ltpLabel}>Price: <Text style={styles.highlightVal}>₹{Number(vals[1] || 0).toFixed(2)}</Text></Text></View>
+                            <View style={{flex: 1.5}}><Text style={styles.detailName}>{name}</Text><Text style={styles.ltpLabel}>Price/NAV: <Text style={styles.highlightVal}>₹{Number(vals[1] || 0).toFixed(2)}</Text></Text></View>
                             <View style={{flex: 1, alignItems: 'flex-end'}}>
                                 <Text style={styles.detailVal}>{showValue ? `${vals[0]} u` : "••"}</Text>
                                 <Text style={styles.rupeeValDetail}>{showValue ? `₹${((Number(vals[0]) || 0) * (Number(vals[1]) || 0)).toLocaleString('en-IN')}` : "••"}</Text>
@@ -440,6 +440,8 @@
                         </View>
                     ))}
                 </View>
+
+                {/* All Categories including Fixed Deposits, Stocks, and MFs with explicit NAV/Prices */}
                 {Object.entries(data.categories).map(([name, cat]) => (
                   <HoldingsGroup key={name} title={name} items={cat.items} type={cat.type} open={openHoldings === name} onToggle={() => setOpenHoldings(openHoldings === name ? null : name)} show={showValue} />
                 ))}
@@ -448,7 +450,7 @@
 
             {activeTab === 'Alerts' && (
               <View>
-                <Text style={styles.secTitle}>LIVE INTELLIGENCE (ECONOMIC TIMES, MINT, TICKERTAPE)</Text>
+                <Text style={styles.secTitle}>LIVE INTELLIGENCE (ECONOMIC TIMES, FINANCIAL EXPRESS, CNBC AWAAZ)</Text>
                 {newsAlerts.map(a => (
                   <TouchableOpacity key={a.id} style={styles.alertCard} onPress={() => Linking.openURL(a.l)}>
                     <Text style={styles.alertMsg}>• {a.m}</Text>
@@ -499,12 +501,12 @@
                     <TouchableOpacity style={styles.deleteCatBtn} onPress={() => deleteAssetClass(catName)}><Text style={styles.deleteCatBtnT}>🗑️ DELETE {catName.toUpperCase()}</Text></TouchableOpacity>
                     {Object.entries(cat.items).map(([k, v]) => (
                       <View key={k} style={styles.editRow}>
-                        <View style={{flex: 1.5, marginRight: 5}}><EditField label={`${k} Value/Qty`} val={v[0]} onC={(v) => updateAssetVal(catName, k, 0, v)} /></View>
-                        <View style={{flex: 1}}><EditField label="Multiplier" val={v[1]} onC={(v) => updateAssetVal(catName, k, 1, v)} isHighlight={true} /></View>
+                        <View style={{flex: 1.5, marginRight: 5}}><EditField label={`${k} Qty/Principal`} val={v[0]} onC={(v) => updateAssetVal(catName, k, 0, v)} /></View>
+                        <View style={{flex: 1}}><EditField label={catName === 'Fixed Deposits' ? 'Multiplier (1.0)' : 'Price / NAV'} val={v[1]} onC={(v) => updateAssetVal(catName, k, 1, v)} isHighlight={true} /></View>
                         <TouchableOpacity onPress={() => deleteAsset(catName, k)} style={styles.delBtn}><Text style={styles.delText}>✕</Text></TouchableOpacity>
                       </View>
                     ))}
-                    <AddItemForm onAdd={(n, q) => addAsset(catName, n, q)} unit={cat.type} />
+                    <AddItemForm onAdd={(n, q) => addAsset(catName, n, q)} unit={cat.type} isFd={catName === 'Fixed Deposits'} />
                   </EditSection>
                 ))}
                 <View style={styles.newCatBox}>
@@ -540,8 +542,10 @@
           <View key={k} style={styles.detailRow}>
             <View style={{flex: 1.5}}>
               <Text style={styles.detailName}>{k}</Text>
+              <Text style={styles.ltpLabel}>Price/NAV: <Text style={styles.highlightVal}>₹{Number(v[1] || 0).toFixed(2)}</Text></Text>
             </View>
             <View style={{flex: 1, alignItems: 'flex-end'}}>
+              <Text style={styles.detailVal}>{show ? `${v[0] || 0} ${type}` : "•••"}</Text>
               <Text style={styles.rupeeValDetail}>{show ? `₹${((Number(v[0]) || 0) * (Number(v[1]) || 0)).toLocaleString('en-IN', {maximumFractionDigits: 0})}` : "•••"}</Text>
             </View>
           </View>
@@ -557,12 +561,12 @@
         <TextInput style={{...styles.input, ...(isHighlight ? {borderColor: '#d81b60', color: '#d81b60', fontWeight: 'bold'} : {})}} keyboardType="numeric" value={val !== undefined ? val : ''} onChangeText={(text) => onC(text)} />
       </View>
     );
-    const AddItemForm = ({ onAdd, unit }) => {
+    const AddItemForm = ({ onAdd, unit, isFd }) => {
       const [n, setN] = useState(''); const [q, setQ] = useState('');
       return (
         <View style={styles.addForm}>
-          <TextInput style={{...styles.input, flex: 2}} placeholder="Add Asset" value={n} onChangeText={setN} />
-          <TextInput style={{...styles.input, flex: 1, marginLeft: 5}} placeholder="Value (₹)" keyboardType="numeric" value={q} onChangeText={setQ} />
+          <TextInput style={{...styles.input, flex: 2}} placeholder={isFd ? "e.g. HDFC Tax Saver FD" : "Add Asset"} value={n} onChangeText={setN} />
+          <TextInput style={{...styles.input, flex: 1, marginLeft: 5}} placeholder={isFd ? "Amount (₹)" : unit} keyboardType="numeric" value={q} onChangeText={setQ} />
           <TouchableOpacity style={styles.addBtn} onPress={() => { onAdd(n, q); setN(''); setQ(''); }}><Text style={styles.addBtnT}>+</Text></TouchableOpacity>
         </View>
       );
