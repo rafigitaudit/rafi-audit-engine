@@ -31,15 +31,15 @@
     const ActivityIndicator = () => <span style={{color: 'white', fontSize: 12}}>...</span>;
     const StatusBar = () => null;
     
-    const TextInput = ({style, placeholder, value, onChangeText, multiline, keyboardType, defaultValue}) => {
+    const TextInput = ({style, placeholder, value, onChangeText, multiline, keyboardType}) => {
       const commonProps = {
         style: { width: '100%', ...style },
         placeholder: placeholder,
-        value: value !== undefined ? value : (defaultValue !== undefined ? defaultValue : ''),
+        value: value !== undefined && value !== null ? value : '',
         onChange: (e) => onChangeText && onChangeText(e.target.value)
       };
       if (multiline) return <textarea {...commonProps} rows="4" />;
-      return <input type={keyboardType === 'numeric' ? 'number' : 'text'} {...commonProps} />;
+      return <input type={keyboardType === 'numeric' ? 'text' : 'text'} {...commonProps} />;
     };
 
     const AsyncStorage = {
@@ -59,7 +59,7 @@
 
     const Linking = { openURL: (url) => window.open(url, '_blank') };
 
-    const STORAGE_KEY = 'laskar_master_audit_v26';
+    const STORAGE_KEY = 'laskar_master_audit_v27';
 
     const initialData = {
       ppf: 890000,
@@ -183,7 +183,6 @@
             }
           };
 
-          // 1. Fetch live Indian retail bullion benchmark (~₹15,000/g)
           try {
             const goldRes = await fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://data-asg.goldprice.org/dbXRates/INR'));
             if(goldRes.ok) {
@@ -204,7 +203,6 @@
             }
           } catch(err) { console.log("Domestic feed fallback active"); }
 
-          // 2. Fetch Mutual Funds concurrently
           const mfCategories = ['Equity Mutual Funds', 'Debt Mutual Funds', 'Hybrid Funds'];
           let fetchPromises = [];
 
@@ -288,7 +286,7 @@
 
       const updateAssetVal = (cat, item, index, val) => {
         let newData = JSON.parse(JSON.stringify(data));
-        const num = parseFloat(val) || 0;
+        const num = val === '' || val === '-' ? 0 : (parseFloat(val) || 0);
         if (cat === 'ppf') newData.ppf = num;
         else if (cat === 'tanishqRate') newData.tanishq.rate = num;
         else if (cat === 'tanishqGrams') newData.tanishq.grams = num;
@@ -419,10 +417,8 @@
 
             {activeTab === 'Holdings' && (
               <View>
-                {/* Standalone PPF Card */}
                 <AssetCard label="PUBLIC PROVIDENT FUND (PPF)" val={`₹${(Number(data.ppf) || 0).toLocaleString('en-IN')}`} show={showValue} color="#004d40" isPpf={true} />
 
-                {/* Gold & Silver Assets */}
                 <AssetCard label="TANISHQ GOLD (24K - MANUAL)" val={`${Number(data.tanishq.grams || 0).toFixed(4)}g @ `} rateVal={`₹${data.tanishq.rate}/g`} totalVal={` = ₹${(data.tanishq.grams * data.tanishq.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}`} show={showValue} color="#ffd700" />
                 <AssetCard label="PHYSICAL GOLD 24K (AUTO RATE)" val={`${Number(data.physicalGold24K.grams || 0).toFixed(4)}g @ `} rateVal={`₹${data.physicalGold24K.rate}/g`} totalVal={` = ₹${(data.physicalGold24K.grams * data.physicalGold24K.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}`} show={showValue} color="#ffb300" />
                 <AssetCard label="PHYSICAL GOLD 22K (AUTO RATE)" val={`${Number(data.physicalGold22K.grams || 0).toFixed(4)}g @ `} rateVal={`₹${data.physicalGold22K.rate}/g`} totalVal={` = ₹${(data.physicalGold22K.grams * data.physicalGold22K.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}`} show={showValue} color="#ffa000" />
@@ -441,7 +437,6 @@
                     ))}
                 </View>
 
-                {/* All Categories including Fixed Deposits, Stocks, and MFs with explicit NAV/Prices */}
                 {Object.entries(data.categories).map(([name, cat]) => (
                   <HoldingsGroup key={name} title={name} items={cat.items} type={cat.type} open={openHoldings === name} onToggle={() => setOpenHoldings(openHoldings === name ? null : name)} show={showValue} />
                 ))}
@@ -471,7 +466,6 @@
                     <Text style={styles.saveBtnT}>💾 LOCK ALL CHANGES</Text>
                 </TouchableOpacity>
                 
-                {/* Standalone PPF Edit Section */}
                 <EditSection title="PPF Asset" open={openEdit === 'ppf'} onToggle={() => setOpenEdit(openEdit === 'ppf' ? null : 'ppf')}>
                     <EditField label="PPF Balance" val={data.ppf} onC={(v) => updateAssetVal('ppf', null, null, v)} />
                 </EditSection>
@@ -522,6 +516,29 @@
       );
     }
 
+    function EditField({ label, val, onC, isHighlight }) {
+      const [textVal, setTextVal] = useState(val !== undefined && val !== null ? val.toString() : '');
+
+      useEffect(() => {
+        setTextVal(val !== undefined && val !== null ? val.toString() : '');
+      }, [val]);
+
+      return (
+        <View style={{marginBottom: 12}}>
+          <Text style={{...styles.inputLabel, ...(isHighlight ? {color: '#d81b60'} : {})}}>{label}</Text>
+          <TextInput 
+            style={{...styles.input, ...(isHighlight ? {borderColor: '#d81b60', color: '#d81b60', fontWeight: 'bold'} : {})}} 
+            keyboardType="numeric" 
+            value={textVal} 
+            onChangeText={(text) => {
+              setTextVal(text);
+              onC(text);
+            }} 
+          />
+        </View>
+      );
+    }
+
     const SummaryCard = ({ label, val, color, show }) => (
       <View style={{...styles.sCard, borderLeftColor: color}}><Text style={styles.sLabel}>{label}</Text><Text style={styles.sVal}>{show ? `₹${(Number(val) / 100000).toFixed(2)} L` : "••••"}</Text></View>
     );
@@ -554,12 +571,6 @@
     );
     const EditSection = ({ title, open, onToggle, children }) => (
       <View style={styles.editBox}><TouchableOpacity onPress={() => onToggle()} style={styles.editHeader}><Text style={styles.editTitle}>{title.toUpperCase()}</Text><Text style={{fontSize: '14px', fontWeight: 'bold'}}>{open ? '▲' : '▼'}</Text></TouchableOpacity>{open && <View style={styles.editContent}>{children}</View>}</View>
-    );
-    const EditField = ({ label, val, onC, isHighlight }) => (
-      <View style={{marginBottom: 12}}>
-        <Text style={{...styles.inputLabel, ...(isHighlight ? {color: '#d81b60'} : {})}}>{label}</Text>
-        <TextInput style={{...styles.input, ...(isHighlight ? {borderColor: '#d81b60', color: '#d81b60', fontWeight: 'bold'} : {})}} keyboardType="numeric" value={val !== undefined ? val : ''} onChangeText={(text) => onC(text)} />
-      </View>
     );
     const AddItemForm = ({ onAdd, unit, isFd }) => {
       const [n, setN] = useState(''); const [q, setQ] = useState('');
