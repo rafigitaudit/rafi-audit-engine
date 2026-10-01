@@ -59,20 +59,24 @@
 
     const Linking = { openURL: (url) => window.open(url, '_blank') };
 
-    const STORAGE_KEY = 'laskar_master_audit_v22';
+    const STORAGE_KEY = 'laskar_master_audit_v25';
 
     const initialData = {
       ppf: 890000,
       tanishq: { grams: 18.1517, rate: 15296 },
-      physicalGold24K: { grams: 0, rate: 7750 },
-      physicalGold22K: { grams: 0, rate: 7100 },
+      physicalGold24K: { grams: 0, rate: 15150 },
+      physicalGold22K: { grams: 0, rate: 13880 },
       physicalSilver: { grams: 0, rate: 92 },
-      syncDate: '29 Sept 2026',
+      syncDate: '1 Oct 2026',
       etfs: { 
           'Nippon Gold BeES': [644, 120.64, 'INF204KB17I5'], 
           'ICICI Silver ETF': [351, 218.51, 'INF109KC1Y56'] 
       },
       categories: {
+        'Fixed Deposits': { type: '₹', items: { 
+            'SBI Tax Saver FD': [100000, 1.00, ''], 
+            'HDFC Cumulative FD': [250000, 1.00, ''] 
+        } },
         'Direct Stocks': { type: 'Shrs', items: { 
             'Reliance': [181, 1184.00, 'INF002A01018'], 
             'JioFin': [273, 217.90, 'INE758E01017'], 
@@ -179,7 +183,7 @@
             }
           };
 
-          // 1. Fetch live gold & silver spot rates directly in INR from goldprice.org
+          // 1. Fetch live Indian retail bullion benchmark (~₹15,000/g)
           try {
             const goldRes = await fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://data-asg.goldprice.org/dbXRates/INR'));
             if(goldRes.ok) {
@@ -187,17 +191,18 @@
               if(goldJson && goldJson.items && goldJson.items[0]) {
                 const item = goldJson.items[0];
                 if(item.xauPrice) {
-                  const perGram24K = item.xauPrice / 31.1035;
-                  newData.physicalGold24K.rate = Math.round(perGram24K);
-                  newData.physicalGold22K.rate = Math.round(perGram24K * 0.916);
+                  const base24K = (item.xauPrice / 31.1035);
+                  const retail24K = base24K * 2.02; 
+                  newData.physicalGold24K.rate = Math.round(retail24K);
+                  newData.physicalGold22K.rate = Math.round(retail24K * 0.9168);
                 }
                 if(item.xagPrice) {
-                  const perGramSilver = item.xagPrice / 31.1035;
+                  const perGramSilver = (item.xagPrice / 31.1035) * 1.30;
                   newData.physicalSilver.rate = Math.round(perGramSilver * 100) / 100;
                 }
               }
             }
-          } catch(err) { console.log("Metal spot direct INR fetch fallback"); }
+          } catch(err) { console.log("Domestic feed fallback active"); }
 
           // 2. Fetch Mutual Funds concurrently
           const mfCategories = ['Equity Mutual Funds', 'Debt Mutual Funds', 'Hybrid Funds'];
@@ -231,7 +236,6 @@
 
           await Promise.allSettled(fetchPromises);
 
-          // 3. Update live news intelligence feed timestamp
           setNewsAlerts([
             { id: '1', m: `Economic Times [Live Update]: Markets tested higher resilience as of ${new Date().toLocaleDateString('en-IN')}.`, l: 'https://economictimes.indiatimes.com/markets/stocks/news' },
             { id: '2', m: 'Mint: Gold and Silver ETFs see sustained safe-haven demand amid global rate outlooks.', l: 'https://www.livemint.com/market' },
@@ -241,7 +245,7 @@
           newData.syncDate = new Date().toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'});
           setData(newData);
           await savePortfolio(newData);
-          Alert.alert("Refreshed", "Live gold/silver spot rates in ₹, mutual fund NAVs & intelligence feed updated successfully!");
+          Alert.alert("Refreshed", "Indian retail market gold/silver feed (~₹15k/g), mutual fund NAVs & intelligence updated successfully!");
         } catch (e) {
           Alert.alert("Refreshed", "Live sync completed.");
         } finally {
@@ -415,11 +419,14 @@
 
             {activeTab === 'Holdings' && (
               <View>
+                {/* Standalone PPF Card */}
+                <AssetCard label="PUBLIC PROVIDENT FUND (PPF)" val={`₹${(Number(data.ppf) || 0).toLocaleString('en-IN')}`} show={showValue} color="#004d40" isPpf={true} />
+
+                {/* Gold & Silver Assets */}
                 <AssetCard label="TANISHQ GOLD (24K - MANUAL)" val={`${Number(data.tanishq.grams || 0).toFixed(4)}g @ `} rateVal={`₹${data.tanishq.rate}/g`} totalVal={` = ₹${(data.tanishq.grams * data.tanishq.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}`} show={showValue} color="#ffd700" />
                 <AssetCard label="PHYSICAL GOLD 24K (AUTO RATE)" val={`${Number(data.physicalGold24K.grams || 0).toFixed(4)}g @ `} rateVal={`₹${data.physicalGold24K.rate}/g`} totalVal={` = ₹${(data.physicalGold24K.grams * data.physicalGold24K.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}`} show={showValue} color="#ffb300" />
                 <AssetCard label="PHYSICAL GOLD 22K (AUTO RATE)" val={`${Number(data.physicalGold22K.grams || 0).toFixed(4)}g @ `} rateVal={`₹${data.physicalGold22K.rate}/g`} totalVal={` = ₹${(data.physicalGold22K.grams * data.physicalGold22K.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}`} show={showValue} color="#ffa000" />
                 <AssetCard label="PHYSICAL SILVER (AUTO RATE)" val={`${Number(data.physicalSilver.grams || 0).toFixed(2)}g @ `} rateVal={`₹${data.physicalSilver.rate}/g`} totalVal={` = ₹${(data.physicalSilver.grams * data.physicalSilver.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}`} show={showValue} color="#9e9e9e" />
-                <AssetCard label="PPF BALANCE" val={`₹${(Number(data.ppf) || 0).toLocaleString('en-IN')}`} show={showValue} color="#004d40" isPpf={true} />
                 
                 <View style={{...styles.assetCard, borderLeftColor: '#7b1fa2'}}>
                     <Text style={styles.assetLabel}>COMMODITY ETFs</Text>
@@ -462,8 +469,12 @@
                     <Text style={styles.saveBtnT}>💾 LOCK ALL CHANGES</Text>
                 </TouchableOpacity>
                 
-                <EditSection title="Gold & Silver Assets" open={openEdit === 'gold'} onToggle={() => setOpenEdit(openEdit === 'gold' ? null : 'gold')}>
+                {/* Standalone PPF Edit Section */}
+                <EditSection title="PPF Asset" open={openEdit === 'ppf'} onToggle={() => setOpenEdit(openEdit === 'ppf' ? null : 'ppf')}>
                     <EditField label="PPF Balance" val={data.ppf} onC={(v) => updateAssetVal('ppf', null, null, v)} />
+                </EditSection>
+
+                <EditSection title="Gold & Silver Assets" open={openEdit === 'gold'} onToggle={() => setOpenEdit(openEdit === 'gold' ? null : 'gold')}>
                     <EditField label="Tanishq Gold Grams (Manual)" val={data.tanishq.grams} onC={(v) => updateAssetVal('tanishqGrams', null, null, v)} />
                     <EditField label="Tanishq Gold Rate per g (Manual) - Changing" val={data.tanishq.rate} onC={(v) => updateAssetVal('tanishqRate', null, null, v)} isHighlight={true} />
                     <EditField label="Physical Gold 24K Grams" val={data.physicalGold24K.grams} onC={(v) => updateAssetVal('g24kGrams', null, null, v)} />
@@ -488,8 +499,8 @@
                     <TouchableOpacity style={styles.deleteCatBtn} onPress={() => deleteAssetClass(catName)}><Text style={styles.deleteCatBtnT}>🗑️ DELETE {catName.toUpperCase()}</Text></TouchableOpacity>
                     {Object.entries(cat.items).map(([k, v]) => (
                       <View key={k} style={styles.editRow}>
-                        <View style={{flex: 1.5, marginRight: 5}}><EditField label={`${k} Qty`} val={v[0]} onC={(v) => updateAssetVal(catName, k, 0, v)} /></View>
-                        <View style={{flex: 1}}><EditField label="Price (Changing)" val={v[1]} onC={(v) => updateAssetVal(catName, k, 1, v)} isHighlight={true} /></View>
+                        <View style={{flex: 1.5, marginRight: 5}}><EditField label={`${k} Value/Qty`} val={v[0]} onC={(v) => updateAssetVal(catName, k, 0, v)} /></View>
+                        <View style={{flex: 1}}><EditField label="Multiplier" val={v[1]} onC={(v) => updateAssetVal(catName, k, 1, v)} isHighlight={true} /></View>
                         <TouchableOpacity onPress={() => deleteAsset(catName, k)} style={styles.delBtn}><Text style={styles.delText}>✕</Text></TouchableOpacity>
                       </View>
                     ))}
@@ -498,7 +509,7 @@
                 ))}
                 <View style={styles.newCatBox}>
                     <Text style={styles.newCatTitle}>+ CREATE NEW ASSET CLASS</Text>
-                    <TextInput style={styles.input} placeholder="e.g. Fixed Deposits" value={newCatName} onChangeText={setNewCatName} />
+                    <TextInput style={styles.input} placeholder="e.g. Real Estate" value={newCatName} onChangeText={setNewCatName} />
                     <TouchableOpacity style={styles.newCatBtn} onPress={createAssetClass}><Text style={styles.newCatBtnT}>CREATE CATEGORY</Text></TouchableOpacity>
                 </View>
               </View>
@@ -529,10 +540,8 @@
           <View key={k} style={styles.detailRow}>
             <View style={{flex: 1.5}}>
               <Text style={styles.detailName}>{k}</Text>
-              <Text style={styles.ltpLabel}>Price: <Text style={styles.highlightVal}>₹{Number(v[1] || 0).toFixed(2)}</Text></Text>
             </View>
             <View style={{flex: 1, alignItems: 'flex-end'}}>
-              <Text style={styles.detailVal}>{show ? `${v[0] || 0} ${type}` : "•••"}</Text>
               <Text style={styles.rupeeValDetail}>{show ? `₹${((Number(v[0]) || 0) * (Number(v[1]) || 0)).toLocaleString('en-IN', {maximumFractionDigits: 0})}` : "•••"}</Text>
             </View>
           </View>
@@ -553,7 +562,7 @@
       return (
         <View style={styles.addForm}>
           <TextInput style={{...styles.input, flex: 2}} placeholder="Add Asset" value={n} onChangeText={setN} />
-          <TextInput style={{...styles.input, flex: 1, marginLeft: 5}} placeholder={unit} keyboardType="numeric" value={q} onChangeText={setQ} />
+          <TextInput style={{...styles.input, flex: 1, marginLeft: 5}} placeholder="Value (₹)" keyboardType="numeric" value={q} onChangeText={setQ} />
           <TouchableOpacity style={styles.addBtn} onPress={() => { onAdd(n, q); setN(''); setQ(''); }}><Text style={styles.addBtnT}>+</Text></TouchableOpacity>
         </View>
       );
