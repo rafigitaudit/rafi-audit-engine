@@ -59,13 +59,13 @@
 
     const Linking = { openURL: (url) => window.open(url, '_blank') };
 
-    const STORAGE_KEY = 'laskar_master_audit_v19';
+    const STORAGE_KEY = 'laskar_master_audit_v22';
 
     const initialData = {
       ppf: 890000,
       tanishq: { grams: 18.1517, rate: 15296 },
-      physicalGold24K: { grams: 0, rate: 7650 },
-      physicalGold22K: { grams: 0, rate: 7000 },
+      physicalGold24K: { grams: 0, rate: 7750 },
+      physicalGold22K: { grams: 0, rate: 7100 },
       physicalSilver: { grams: 0, rate: 92 },
       syncDate: '29 Sept 2026',
       etfs: { 
@@ -179,7 +179,7 @@
             }
           };
 
-          // 1. Fetch Gold/Silver live rates from reliable API
+          // 1. Fetch live gold & silver spot rates directly in INR from goldprice.org
           try {
             const goldRes = await fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://data-asg.goldprice.org/dbXRates/INR'));
             if(goldRes.ok) {
@@ -197,7 +197,7 @@
                 }
               }
             }
-          } catch(err) { console.log("Gold fetch fallback active"); }
+          } catch(err) { console.log("Metal spot direct INR fetch fallback"); }
 
           // 2. Fetch Mutual Funds concurrently
           const mfCategories = ['Equity Mutual Funds', 'Debt Mutual Funds', 'Hybrid Funds'];
@@ -241,7 +241,7 @@
           newData.syncDate = new Date().toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'});
           setData(newData);
           await savePortfolio(newData);
-          Alert.alert("Refreshed", "Live rates, NAVs & intelligence feed updated successfully!");
+          Alert.alert("Refreshed", "Live gold/silver spot rates in ₹, mutual fund NAVs & intelligence feed updated successfully!");
         } catch (e) {
           Alert.alert("Refreshed", "Live sync completed.");
         } finally {
