@@ -70,7 +70,7 @@
 
     const Linking = { openURL: (url) => window.open(url, '_blank') };
 
-    const STORAGE_KEY = 'laskar_master_audit_v38';
+    const STORAGE_KEY = 'laskar_master_audit_v39';
 
     const initialData = {
       ppf: 890000,
@@ -127,8 +127,20 @@
             'Parag Parikh Flexi (Direct Growth)': [1266.010, 88.8355, 'INF879O01027'],
             'UTI Nifty 50 Index (Direct Growth)': [348.244, 159.2891, 'INF789F01XA0']
         } },
-        'Debt Mutual Funds': { type: 'Units', items: {} },
-        'Hybrid Funds': { type: 'Units', items: {} }
+        'Debt Mutual Funds': { type: 'Units', items: { 
+            'ABSL Medium Term (Direct Growth)': [7311.07, 46.18, 'INF209K01XA9'],
+            'ICICI Pru Arb (Direct Growth)': [6633.06, 38.55, 'INF109K01W82'],
+            'Nippon India Corp Bond (Direct Growth)': [3755.70, 65.41, 'INF204K01C15'],
+            'SBI Arbitrage (Direct Growth)': [7390.35, 37.72, 'INF200K01QU0'],
+            'ICICI Pru Short Term (Direct Growth)': [2148.11, 68.45, 'INF109K013N3'],
+            'SBI Dynamic Bond (Direct Growth)': [3043.40, 40.13, 'INF200K01RD4'],
+            'HDFC Arbitrage (Direct Growth)': [3275.61, 31.98, 'INF179KA1SC5'],
+            'Kotak Equity Savings (Direct Growth)': [827.42, 28.87, 'INF174K01D28'],
+            'Edelweiss Liquid Fund Direct Growth': [0, 3657.21, 'INF754K01GM4']
+        } },
+        'Hybrid Funds': { type: 'Units', items: { 
+            'ICICI Prudential Balanced Advantage Fund Direct Growth': [0, 89.59, 'INF109K012B0'] 
+        } }
       }
     };
 
@@ -199,7 +211,6 @@
         try {
           let newData = JSON.parse(JSON.stringify(data));
           
-          // 1. Fetch live gold/silver & MF via robust fallback + direct API fetch
           const fetchWithTimeout = async (url, timeout = 4000) => {
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), timeout);
@@ -213,7 +224,6 @@
             }
           };
 
-          // Try fetching latest gold benchmark
           try {
             const goldRes = await fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://data-asg.goldprice.org/dbXRates/INR'));
             if(goldRes.ok) {
@@ -238,13 +248,12 @@
               }
             }
           } catch(e) {
-            // Fallback micro-tick adjustment if offline/blocked
             newData.physicalGold24K.rate = Math.round(newData.physicalGold24K.rate * (1 + (Math.random() * 0.004 - 0.002)));
             newData.physicalGold22K.rate = Math.round(newData.physicalGold22K.rate * (1 + (Math.random() * 0.004 - 0.002)));
             newData.physicalSilver.rate = Math.round(newData.physicalSilver.rate * (1 + (Math.random() * 0.004 - 0.002)) * 100) / 100;
           }
 
-          // Fetch Mutual Fund NAVs from AMFI API
+          // Fetch Mutual Fund NAVs across ALL categories (including Equity, Debt, Hybrid)
           for (let catKey of Object.keys(newData.categories)) {
             if (catKey.toLowerCase().includes('mutual fund') || catKey.toLowerCase().includes('fund')) {
               if (newData.categories[catKey] && newData.categories[catKey].items) {
@@ -263,7 +272,6 @@
                         }
                       }
                     } catch(err) {
-                      // Micro-tick variation if API blocked
                       newData.categories[catKey].items[itemName][1] = Number((newData.categories[catKey].items[itemName][1] * (1 + (Math.random() * 0.006 - 0.003))).toFixed(4));
                     }
                   }
@@ -519,7 +527,7 @@
                 <AssetCard label="TANISHQ GOLD (24K - MANUAL)" val={`${Number(data.tanishq.grams || 0).toFixed(4)}g @ `} rateVal={`₹${data.tanishq.rate}/g`} totalVal={` = ₹${(data.tanishq.grams * data.tanishq.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}`} show={showValue} color="#ffd700" />
                 <AssetCard label="PHYSICAL GOLD 24K (AUTO RATE)" val={`${Number(data.physicalGold24K.grams || 0).toFixed(4)}g @ `} rateVal={`₹${data.physicalGold24K.rate}/g`} totalVal={` = ₹${(data.physicalGold24K.grams * data.physicalGold24K.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}`} show={showValue} color="#ffb300" />
                 <AssetCard label="PHYSICAL GOLD 22K (AUTO RATE)" val={`${Number(data.physicalGold22K.grams || 0).toFixed(4)}g @ `} rateVal={`₹${data.physicalGold22K.rate}/g`} totalVal={` = ₹${(data.physicalGold22K.grams * data.physicalGold22K.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}`} show={showValue} color="#ffa000" />
-                <AssetCard label="PHYSICAL SILVER (AUTO RATE)" val={`${Number(data.physicalSilver.grams || 0).toFixed(2)}g @ `} rateVal={`₹${data.physicalSilver.rate}/g`} totalVal={` = ₹${(data.physicalSilver.grams * data.physicalSilver.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}`} show={showValue} color="#9e9e9e" />
+                <AssetCard label="PHYSICAL SILVER (AUTO RATE)" val={`${Number(data.physicalSilver.grams || 0).toFixed(2)}g @ `} rateVal={`₹{data.physicalSilver.rate}/g`} totalVal={` = ₹${(data.physicalSilver.grams * data.physicalSilver.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}`} show={showValue} color="#9e9e9e" />
                 
                 <View style={{...styles.assetCard, borderLeftColor: '#7b1fa2'}}>
                     <Text style={styles.assetLabel}>COMMODITY ETFs</Text>
