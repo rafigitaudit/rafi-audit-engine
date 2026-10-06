@@ -70,7 +70,7 @@
 
     const Linking = { openURL: (url) => window.open(url, '_blank') };
 
-    const STORAGE_KEY = 'laskar_master_audit_v41';
+    const STORAGE_KEY = 'laskar_master_audit_v42';
 
     const initialData = {
       ppf: 890000,
@@ -193,15 +193,10 @@
             Alert.alert("Success", "Backup file successfully saved!");
             return;
           } catch (err) {
-            if (err.name !== 'AbortError') {
-              // Fallback to standard anchor download if picker is cancelled or unsupported
-            } else {
-              return;
-            }
+            if (err.name === 'AbortError') return;
           }
         }
 
-        // Standard download fallback
         const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const downloadAnchor = document.createElement('a');
@@ -253,7 +248,6 @@
             }
           };
 
-          // Domestic Live Silver Spot Rate feed only
           try {
             const goldRes = await fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://data-asg.goldprice.org/dbXRates/INR'));
             if(goldRes.ok) {
@@ -278,10 +272,9 @@
               }
             }
           } catch(e) {
-            newData. physicalSilver.rate = Math.round(newData.physicalSilver.rate * (1 + (Math.random() * 0.004 - 0.002)) * 100) / 100;
+            newData.physicalSilver.rate = Math.round(newData.physicalSilver.rate * (1 + (Math.random() * 0.004 - 0.002)) * 100) / 100;
           }
 
-          // Fetch Mutual Fund NAVs across ALL categories
           for (let catKey of Object.keys(newData.categories)) {
             if (catKey.toLowerCase().includes('mutual fund') || catKey.toLowerCase().includes('fund')) {
               if (newData.categories[catKey] && newData.categories[catKey].items) {
@@ -434,7 +427,6 @@
         <SafeAreaView style={styles.container}>
           <StatusBar />
           
-          {/* DEDICATED PRINT REPORT FOR PDF EXPORT */}
           <div className="print-report">
             <div className="print-header">
               <h2 style={{margin: 0, color: '#004d40'}}>RAFI'S MASTER PORTFOLIO AUDIT REPORT</h2>
@@ -590,7 +582,6 @@
 
             {activeTab === 'Edit' && (
               <View style={styles.noPrint}>
-                {/* BACKUP & RESTORE UTILITY BOX */}
                 <View style={{backgroundColor: '#fff3e0', padding: '18px', borderRadius: '14px', marginBottom: '16px', borderLeftWidth: '6px', borderLeftStyle: 'solid', borderLeftColor: '#ef6c00'}}>
                     <Text style={{fontSize: '12px', fontWeight: 'bold', color: '#ef6c00', marginBottom: '10px'}}>PORTFOLIO BACKUP & RESTORE (ASKS WHERE TO SAVE)</Text>
                     <div style={{display: 'flex', gap: '10px'}}>
@@ -604,7 +595,6 @@
                     </div>
                 </View>
 
-                {/* SINGLE DEDICATED PDF REPORT BUTTON ON EDIT PAGE */}
                 <View style={{marginBottom: '16px'}}>
                   <TouchableOpacity onPress={handleExportPDF} style={{backgroundColor: '#1565c0', padding: '18px', borderRadius: '14px', alignItems: 'center', justifyContent: 'center'}}>
                     <Text style={{color: '#fff', fontWeight: 'bold', fontSize: '14px'}}>🖨️ EXPORT DETAILED PORTFOLIO REPORT (PDF)</Text>
@@ -805,7 +795,8 @@
       etfRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: '12px', paddingBottom: '8px', borderBottomWidth: '1px', borderBottomStyle: 'dashed', borderBottomColor: '#eee', alignItems: 'center' }
     };
 
-    const root = ReactDOM.createRoot(rootEl); // handled by wrapper
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
   </script>
 </body>
 </html>
