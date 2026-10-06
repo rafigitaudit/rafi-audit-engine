@@ -70,7 +70,7 @@
 
     const Linking = { openURL: (url) => window.open(url, '_blank') };
 
-    const STORAGE_KEY = 'laskar_master_audit_v39';
+    const STORAGE_KEY = 'laskar_master_audit_v41';
 
     const initialData = {
       ppf: 890000,
@@ -125,7 +125,10 @@
             'Invesco Multicap (Direct Growth)': [520.560, 152.8800, 'INF205K01MS2'],
             'Motilal Nasdaq 100 (Direct Growth)': [590.053, 67.7305, 'INF247L01718'],
             'Parag Parikh Flexi (Direct Growth)': [1266.010, 88.8355, 'INF879O01027'],
-            'UTI Nifty 50 Index (Direct Growth)': [348.244, 159.2891, 'INF789F01XA0']
+            'UTI Nifty 50 Index (Direct Growth)': [348.244, 159.2891, 'INF789F01XA0'],
+            'Axis ELSS (Direct Growth)': [1814.13, 97.72, 'INF846K01EW2'],
+            'Axis ELSS (Regular Growth)': [0.0, 90.15, 'INF846K01131'],
+            'Axis Global Alpha (Direct Growth)': [1058.20, 23.16, 'INF846K01X06']
         } },
         'Debt Mutual Funds': { type: 'Units', items: { 
             'ABSL Medium Term (Direct Growth)': [7311.07, 46.18, 'INF209K01XA9'],
@@ -174,14 +177,40 @@
         catch (e) { Alert.alert("Error", "Save failed."); }
       };
 
-      const handleExportBackup = () => {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+      const handleExportBackup = async () => {
+        const dataStr = JSON.stringify(data, null, 2);
+        const fileName = `rafi_audit_backup_${new Date().toISOString().slice(0,10)}.json`;
+
+        if ('showSaveFilePicker' in window) {
+          try {
+            const handle = await window.showSaveFilePicker({
+              suggestedName: fileName,
+              types: [{ description: 'JSON Files', accept: { 'application/json': ['.json'] } }],
+            });
+            const writable = await handle.createWritable();
+            await writable.write(dataStr);
+            await writable.close();
+            Alert.alert("Success", "Backup file successfully saved!");
+            return;
+          } catch (err) {
+            if (err.name !== 'AbortError') {
+              // Fallback to standard anchor download if picker is cancelled or unsupported
+            } else {
+              return;
+            }
+          }
+        }
+
+        // Standard download fallback
+        const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
         const downloadAnchor = document.createElement('a');
-        downloadAnchor.setAttribute("href", dataStr);
-        downloadAnchor.setAttribute("download", `rafi_audit_backup_${new Date().toISOString().slice(0,10)}.json`);
+        downloadAnchor.href = url;
+        downloadAnchor.download = fileName;
         document.body.appendChild(downloadAnchor);
         downloadAnchor.click();
         downloadAnchor.remove();
+        URL.revokeObjectURL(url);
         Alert.alert("Backup Exported", "Your backup JSON file has been successfully downloaded.");
       };
 
@@ -224,6 +253,7 @@
             }
           };
 
+          // Domestic Live Silver Spot Rate feed only
           try {
             const goldRes = await fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://data-asg.goldprice.org/dbXRates/INR'));
             if(goldRes.ok) {
@@ -248,12 +278,10 @@
               }
             }
           } catch(e) {
-            newData.physicalGold24K.rate = Math.round(newData.physicalGold24K.rate * (1 + (Math.random() * 0.004 - 0.002)));
-            newData.physicalGold22K.rate = Math.round(newData.physicalGold22K.rate * (1 + (Math.random() * 0.004 - 0.002)));
-            newData.physicalSilver.rate = Math.round(newData.physicalSilver.rate * (1 + (Math.random() * 0.004 - 0.002)) * 100) / 100;
+            newData. physicalSilver.rate = Math.round(newData.physicalSilver.rate * (1 + (Math.random() * 0.004 - 0.002)) * 100) / 100;
           }
 
-          // Fetch Mutual Fund NAVs across ALL categories (including Equity, Debt, Hybrid)
+          // Fetch Mutual Fund NAVs across ALL categories
           for (let catKey of Object.keys(newData.categories)) {
             if (catKey.toLowerCase().includes('mutual fund') || catKey.toLowerCase().includes('fund')) {
               if (newData.categories[catKey] && newData.categories[catKey].items) {
@@ -283,7 +311,7 @@
           newData.syncDate = new Date().toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'});
           setData(newData);
           await savePortfolio(newData);
-          Alert.alert("Refreshed Successfully", `All live NAVs, bullion spot rates & asset valuations updated as of ${newData.syncDate}.`);
+          Alert.alert("Refreshed Successfully", `All live NAVs, domestic silver rate & valuations updated as of ${newData.syncDate}.`);
         } catch (e) {
           Alert.alert("Refresh Complete", "Portfolio data refreshed successfully.");
         } finally {
@@ -527,7 +555,7 @@
                 <AssetCard label="TANISHQ GOLD (24K - MANUAL)" val={`${Number(data.tanishq.grams || 0).toFixed(4)}g @ `} rateVal={`₹${data.tanishq.rate}/g`} totalVal={` = ₹${(data.tanishq.grams * data.tanishq.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}`} show={showValue} color="#ffd700" />
                 <AssetCard label="PHYSICAL GOLD 24K (AUTO RATE)" val={`${Number(data.physicalGold24K.grams || 0).toFixed(4)}g @ `} rateVal={`₹${data.physicalGold24K.rate}/g`} totalVal={` = ₹${(data.physicalGold24K.grams * data.physicalGold24K.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}`} show={showValue} color="#ffb300" />
                 <AssetCard label="PHYSICAL GOLD 22K (AUTO RATE)" val={`${Number(data.physicalGold22K.grams || 0).toFixed(4)}g @ `} rateVal={`₹${data.physicalGold22K.rate}/g`} totalVal={` = ₹${(data.physicalGold22K.grams * data.physicalGold22K.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}`} show={showValue} color="#ffa000" />
-                <AssetCard label="PHYSICAL SILVER (AUTO RATE)" val={`${Number(data.physicalSilver.grams || 0).toFixed(2)}g @ `} rateVal={`₹{data.physicalSilver.rate}/g`} totalVal={` = ₹${(data.physicalSilver.grams * data.physicalSilver.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}`} show={showValue} color="#9e9e9e" />
+                <AssetCard label="PHYSICAL SILVER (AUTO RATE)" val={`${Number(data.physicalSilver.grams || 0).toFixed(2)}g @ `} rateVal={`₹${data.physicalSilver.rate}/g`} totalVal={` = ₹${(data.physicalSilver.grams * data.physicalSilver.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}`} show={showValue} color="#9e9e9e" />
                 
                 <View style={{...styles.assetCard, borderLeftColor: '#7b1fa2'}}>
                     <Text style={styles.assetLabel}>COMMODITY ETFs</Text>
@@ -564,7 +592,7 @@
               <View style={styles.noPrint}>
                 {/* BACKUP & RESTORE UTILITY BOX */}
                 <View style={{backgroundColor: '#fff3e0', padding: '18px', borderRadius: '14px', marginBottom: '16px', borderLeftWidth: '6px', borderLeftStyle: 'solid', borderLeftColor: '#ef6c00'}}>
-                    <Text style={{fontSize: '12px', fontWeight: 'bold', color: '#ef6c00', marginBottom: '10px'}}>PORTFOLIO BACKUP & RESTORE (FOR REINSTALLS & CODE UPDATES)</Text>
+                    <Text style={{fontSize: '12px', fontWeight: 'bold', color: '#ef6c00', marginBottom: '10px'}}>PORTFOLIO BACKUP & RESTORE (ASKS WHERE TO SAVE)</Text>
                     <div style={{display: 'flex', gap: '10px'}}>
                         <TouchableOpacity onPress={handleExportBackup} style={{flex: 1, backgroundColor: '#ef6c00', padding: '12px', borderRadius: '10px', alignItems: 'center', justifyContent: 'center'}}>
                             <Text style={{color: '#fff', fontWeight: 'bold', fontSize: '12px'}}>📥 EXPORT BACKUP</Text>
@@ -777,8 +805,7 @@
       etfRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: '12px', paddingBottom: '8px', borderBottomWidth: '1px', borderBottomStyle: 'dashed', borderBottomColor: '#eee', alignItems: 'center' }
     };
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
+    const root = ReactDOM.createRoot(rootEl); // handled by wrapper
   </script>
 </body>
 </html>
