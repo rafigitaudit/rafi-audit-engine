@@ -15,11 +15,18 @@
     input, textarea { font-family: inherit; }
     ::-webkit-scrollbar { display: none; }
     #root { height: 100vh; display: flex; flex-direction: column; }
+    
+    /* Dedicated Print & PDF Styles */
     @media print {
-      body { background-color: #fff; }
+      body { background-color: #fff !important; color: #000 !important; }
       .no-print { display: none !important; }
-      .print-only { display: block !important; }
+      .print-report { display: block !important; width: 100%; padding: 20px; font-size: 12px; }
+      .print-table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; }
+      .print-table th, .print-table td { border: 1px solid #999; padding: 6px 10px; text-align: left; }
+      .print-table th { background-color: #004d40 !important; color: #fff !important; font-weight: bold; }
+      .print-header { border-bottom: 3px solid #004d40; padding-bottom: 10px; margin-bottom: 20px; }
     }
+    .print-report { display: none; }
   </style>
 </head>
 <body>
@@ -64,7 +71,7 @@
 
     const Linking = { openURL: (url) => window.open(url, '_blank') };
 
-    const STORAGE_KEY = 'laskar_master_audit_v33';
+    const STORAGE_KEY = 'laskar_master_audit_v34';
 
     const initialData = {
       ppf: 890000,
@@ -402,6 +409,64 @@
       return (
         <SafeAreaView style={styles.container}>
           <StatusBar />
+          
+          {/* HIDDEN DEDICATED PRINT/PDF REPORT */}
+          <div className="print-report">
+            <div className="print-header">
+              <h2 style={{margin: 0, color: '#004d40'}}>RAFI'S MASTER PORTFOLIO AUDIT REPORT</h2>
+              <p style={{margin: '4px 0 0', fontSize: 11, color: '#555'}}>Generated on: {new Date().toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'})} | Total Net Valuation: ₹{totalNetWorth.toLocaleString('en-IN', {maximumFractionDigits:0})}</p>
+            </div>
+
+            <h3>1. Summary Allocation</h3>
+            <table className="print-table">
+              <thead>
+                <tr><th>Asset Class</th><th>Valuation (₹)</th><th>Allocation (%)</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Equity</td><td>₹{equityVal.toLocaleString('en-IN', {maximumFractionDigits:0})}</td><td>{equityPct}%</td></tr>
+                <tr><td>Debt</td><td>₹{debtVal.toLocaleString('en-IN', {maximumFractionDigits:0})}</td><td>{debtPct}%</td></tr>
+                <tr><td>Gold</td><td>₹{goldVal.toLocaleString('en-IN', {maximumFractionDigits:0})}</td><td>{goldPct}%</td></tr>
+                <tr><td>Others & Commodities</td><td>₹{otherVal.toLocaleString('en-IN', {maximumFractionDigits:0})}</td><td>{otherPct}%</td></tr>
+              </tbody>
+            </table>
+
+            <h3>2. Detailed Asset Holdings</h3>
+            
+            <h4>Public Provident Fund (PPF) & Bullion</h4>
+            <table className="print-table">
+              <thead><tr><th>Asset Name</th><th>Quantity / Balance</th><th>Rate / Price (₹)</th><th>Total Value (₹)</th></tr></thead>
+              <tbody>
+                <tr><td>Public Provident Fund (PPF)</td><td>Balance</td><td>1.00</td><td>₹{Number(data.ppf).toLocaleString('en-IN')}</td></tr>
+                <tr><td>Tanishq Gold (24K)</td><td>{Number(data.tanishq.grams).toFixed(4)} g</td><td>₹{data.tanishq.rate}</td><td>₹{(data.tanishq.grams * data.tanishq.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}</td></tr>
+                <tr><td>Physical Gold 24K</td><td>{Number(data.physicalGold24K.grams).toFixed(4)} g</td><td>₹{data.physicalGold24K.rate}</td><td>₹{(data.physicalGold24K.grams * data.physicalGold24K.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}</td></tr>
+                <tr><td>Physical Gold 22K</td><td>{Number(data.physicalGold22K.grams).toFixed(4)} g</td><td>₹{data.physicalGold22K.rate}</td><td>₹{(data.physicalGold22K.grams * data.physicalGold22K.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}</td></tr>
+                <tr><td>Physical Silver</td><td>{Number(data.physicalSilver.grams).toFixed(2)} g</td><td>₹{data.physicalSilver.rate}</td><td>₹{(data.physicalSilver.grams * data.physicalSilver.rate).toLocaleString('en-IN', {maximumFractionDigits:0})}</td></tr>
+                {Object.entries(data.etfs).map(([name, vals]) => (
+                  <tr key={name}><td>{name} (ETF)</td><td>{vals[0]} Units</td><td>₹{vals[1]}</td><td>₹{(vals[0] * vals[1]).toLocaleString('en-IN', {maximumFractionDigits:0})}</td></tr>
+                ))}
+              </tbody>
+            </table>
+
+            {Object.entries(data.categories).map(([catName, cat]) => (
+              <div key={catName}>
+                <h4>{catName.toUpperCase()}</h4>
+                <table className="print-table">
+                  <thead><tr><th>Item Name</th><th>Quantity / Principal</th><th>Price / NAV (₹)</th><th>Total Value (₹)</th></tr></thead>
+                  <tbody>
+                    {Object.entries(cat.items).map(([k, v]) => (
+                      <tr key={k}>
+                        <td>{k}</td>
+                        <td>{v[0]} {cat.type}</td>
+                        <td>₹{Number(v[1]).toFixed(2)}</td>
+                        <td>₹{((Number(v[0]) || 0) * (Number(v[1]) || 0)).toLocaleString('en-IN', {maximumFractionDigits:0})}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+
           <View style={{...styles.header, ...styles.noPrint}}>
             <View style={{flex: 1}}>
               <Text style={styles.headerTitle}>{activeTab.toUpperCase()}</Text>
@@ -426,11 +491,6 @@
           </View>
 
           <ScrollView style={styles.body}>
-            <div className="print-only" style={{display: 'none', marginBottom: 20, borderBottom: '2px solid #004d40', paddingBottom: 15}}>
-              <h1 style={{color: '#004d40', margin: 0, fontSize: 24}}>RAFI'S MASTER PORTFOLIO AUDIT REPORT</h1>
-              <p style={{margin: '5px 0 0', color: '#555', fontSize: 13}}>Generated on: {new Date().toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'})} | Total Net Worth: ₹{totalNetWorth.toLocaleString('en-IN', {maximumFractionDigits:0})}</p>
-            </div>
-
             {activeTab === 'Dashboard' && (
               <View>
                 <View style={styles.wealthCard}>
@@ -487,7 +547,7 @@
                 </View>
 
                 {Object.entries(data.categories).map(([name, cat]) => (
-                  <HoldingsGroup key={name} title={name} items={cat.items} type={cat.type} open={openHoldings === name || window.matchMedia('print').matches} onToggle={() => setOpenHoldings(openHoldings === name ? null : name)} show={showValue} />
+                  <HoldingsGroup key={name} title={name} items={cat.items} type={cat.type} open={openHoldings === name} onToggle={() => setOpenHoldings(openHoldings === name ? null : name)} show={showValue} />
                 ))}
               </View>
             )}
@@ -520,10 +580,10 @@
                     </div>
                 </View>
 
-                {/* SINGLE EXPORT PDF BUTTON ON EDIT PAGE */}
+                {/* SINGLE DEDICATED PDF REPORT BUTTON ON EDIT PAGE */}
                 <View style={{marginBottom: '16px'}}>
                   <TouchableOpacity onPress={handleExportPDF} style={{backgroundColor: '#1565c0', padding: '18px', borderRadius: '14px', alignItems: 'center', justifyContent: 'center'}}>
-                    <Text style={{color: '#fff', fontWeight: 'bold', fontSize: '14px'}}>🖨️ EXPORT ALL ASSET VALUES AS PDF</Text>
+                    <Text style={{color: '#fff', fontWeight: 'bold', fontSize: '14px'}}>🖨️ EXPORT DETAILED PORTFOLIO REPORT (PDF)</Text>
                   </TouchableOpacity>
                 </View>
 
