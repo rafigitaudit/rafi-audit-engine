@@ -64,7 +64,7 @@
 
     const Linking = { openURL: (url) => window.open(url, '_blank') };
 
-    const STORAGE_KEY = 'laskar_master_audit_v32';
+    const STORAGE_KEY = 'laskar_master_audit_v33';
 
     const initialData = {
       ppf: 890000,
@@ -120,7 +120,9 @@
             'Motilal Nasdaq 100 (Direct Growth)': [590.053, 67.8107, 'INF247L01718'],
             'Parag Parikh Flexi (Direct Growth)': [1266.010, 88.2569, 'INF879O01027'],
             'UTI Nifty 50 Index (Direct Growth)': [348.244, 157.8901, 'INF789F01XA0']
-        } }
+        } },
+        'Debt Mutual Funds': { type: 'Units', items: {} },
+        'Hybrid Funds': { type: 'Units', items: {} }
       }
     };
 
@@ -226,41 +228,42 @@
             }
           } catch(err) { console.log("Bullion feed fallback active"); }
 
-          // 2. Fetch Mutual Funds using dual proxy rotation
-          const mfCategories = ['Equity Mutual Funds', 'Debt Mutual Funds', 'Hybrid Funds'];
+          // 2. Fetch Mutual Funds across ALL categories using dual proxy rotation
           let fetchPromises = [];
 
-          for (let catKey of mfCategories) {
-            if (newData.categories[catKey] && newData.categories[catKey].items) {
-              for (let [itemName, itemVals] of Object.entries(newData.categories[catKey].items)) {
-                const isin = itemVals[2];
-                if (isin && isin.trim() !== '') {
-                  const p = (async () => {
-                    const targetUrl = `https://api.mfapi.in/mf/${isin}`;
-                    const proxies = [
-                      `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
-                      `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`
-                    ];
-                    
-                    let success = false;
-                    for (let proxyUrl of proxies) {
-                      if (success) break;
-                      try {
-                        const navRes = await fetchWithTimeout(proxyUrl, 4000);
-                        if (navRes.ok) {
-                          const navJson = await navRes.json();
-                          if (navJson && navJson.data && navJson.data.length > 0) {
-                            const latestNav = parseFloat(navJson.data[0].nav);
-                            if (!isNaN(latestNav)) {
-                              newData.categories[catKey].items[itemName][1] = latestNav;
-                              success = true;
+          for (let catKey of Object.keys(newData.categories)) {
+            if (catKey.toLowerCase().includes('mutual fund') || catKey.toLowerCase().includes('fund')) {
+              if (newData.categories[catKey] && newData.categories[catKey].items) {
+                for (let [itemName, itemVals] of Object.entries(newData.categories[catKey].items)) {
+                  const isin = itemVals[2];
+                  if (isin && isin.trim() !== '') {
+                    const p = (async () => {
+                      const targetUrl = `https://api.mfapi.in/mf/${isin}`;
+                      const proxies = [
+                        `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+                        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`
+                      ];
+                      
+                      let success = false;
+                      for (let proxyUrl of proxies) {
+                        if (success) break;
+                        try {
+                          const navRes = await fetchWithTimeout(proxyUrl, 4000);
+                          if (navRes.ok) {
+                            const navJson = await navRes.json();
+                            if (navJson && navJson.data && navJson.data.length > 0) {
+                              const latestNav = parseFloat(navJson.data[0].nav);
+                              if (!isNaN(latestNav)) {
+                                newData.categories[catKey].items[itemName][1] = latestNav;
+                                success = true;
+                              }
                             }
                           }
-                        }
-                      } catch(proxyErr) { /* try next proxy */ }
-                    }
-                  })();
-                  fetchPromises.push(p);
+                        } catch(proxyErr) { /* try next proxy */ }
+                      }
+                    })();
+                    fetchPromises.push(p);
+                  }
                 }
               }
             }
@@ -277,7 +280,7 @@
           newData.syncDate = new Date().toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'});
           setData(newData);
           await savePortfolio(newData);
-          Alert.alert("Refreshed", "Mutual Fund NAVs, Gold & Silver live rates, news feeds & valuations updated successfully!");
+          Alert.alert("Refreshed", "Mutual Fund live NAVs, Gold & Silver rates, news feeds & valuations updated successfully!");
         } catch (e) {
           Alert.alert("Refreshed", "Live sync completed.");
         } finally {
@@ -370,7 +373,7 @@
       const getTotal = (cat) => Object.values(cat.items).reduce((a, b) => a + ((Number(b[0]) || 0) * (Number(b[1]) || 0)), 0);
 
       const equityVal = (data.categories['Direct Stocks'] ? getTotal(data.categories['Direct Stocks']) : 0) + (data.categories['Equity Mutual Funds'] ? getTotal(data.categories['Equity Mutual Funds']) : 0);
-      const debtVal = data.ppf + (data.categories['Debt Mutual Funds'] ? getTotal(data.categories['Debt Mutual Funds']) : 0) + (data.categories['Fixed Deposits'] ? getTotal(data.categories['Fixed Deposits']) : 0);
+      const debtVal = data.ppf + (data.categories['Debt Mutual Funds'] ? getTotal(data.categories['Debt Mutual Funds']) : 0) + (data.categories['Fixed Deposits'] ? getTotal(data.categories['Fixed Deposits']) : 0) + (data.categories['Hybrid Funds'] ? getTotal(data.categories['Hybrid Funds']) * 0.5 : 0);
       
       const tanishqGoldVal = (Number(data.tanishq.grams) || 0) * (Number(data.tanishq.rate) || 0);
       const gold24KVal = (Number(data.physicalGold24K.grams) || 0) * (Number(data.physicalGold24K.rate) || 0);
@@ -382,9 +385,10 @@
       const silverEtfVal = data.etfs['ICICI Silver ETF'] ? (Number(data.etfs['ICICI Silver ETF'][0]) || 0) * (Number(data.etfs['ICICI Silver ETF'][1]) || 0) : 0;
       const silverVal = physicalSilverVal + silverEtfVal;
       
-      const customCategoriesVal = Object.entries(data.categories).filter(([name]) => !['Direct Stocks', 'Debt Mutual Funds', 'Equity Mutual Funds', 'Fixed Deposits'].includes(name)).reduce((acc, [_, cat]) => acc + getTotal(cat), 0);
-      const otherVal = silverVal + customCategoriesVal;
-      const totalNetWorth = equityVal + debtVal + goldVal + otherVal;
+      const hybridEquityPart = data.categories['Hybrid Funds'] ? getTotal(data.categories['Hybrid Funds']) * 0.5 : 0;
+      const customCategoriesVal = Object.entries(data.categories).filter(([name]) => !['Direct Stocks', 'Debt Mutual Funds', 'Equity Mutual Funds', 'Hybrid Funds', 'Fixed Deposits'].includes(name)).reduce((acc, [_, cat]) => acc + getTotal(cat), 0);
+      const otherVal = silverVal + customCategoriesVal + hybridEquityPart;
+      const totalNetWorth = equityVal + debtVal + goldVal + otherVal - hybridEquityPart;
 
       const equityPct = totalNetWorth > 0 ? ((equityVal / totalNetWorth) * 100).toFixed(1) : 0;
       const debtPct = totalNetWorth > 0 ? ((debtVal / totalNetWorth) * 100).toFixed(1) : 0;
@@ -404,9 +408,6 @@
               <Text style={styles.headerSub}>RAFI'S AUDIT ENGINE v2026.10</Text>
             </View>
             <View style={styles.headerIcons}>
-              <TouchableOpacity onPress={handleExportPDF} style={styles.iconBtn} title="Export PDF">
-                <Text style={styles.iconText}>🖨️</Text>
-              </TouchableOpacity>
               <TouchableOpacity onPress={handleRefresh} style={styles.iconBtn}>
                 {isRefreshing ? <ActivityIndicator /> : <Text style={styles.iconText}>🔄</Text>}
               </TouchableOpacity>
@@ -519,6 +520,13 @@
                     </div>
                 </View>
 
+                {/* SINGLE EXPORT PDF BUTTON ON EDIT PAGE */}
+                <View style={{marginBottom: '16px'}}>
+                  <TouchableOpacity onPress={handleExportPDF} style={{backgroundColor: '#1565c0', padding: '18px', borderRadius: '14px', alignItems: 'center', justifyContent: 'center'}}>
+                    <Text style={{color: '#fff', fontWeight: 'bold', fontSize: '14px'}}>🖨️ EXPORT ALL ASSET VALUES AS PDF</Text>
+                  </TouchableOpacity>
+                </View>
+
                 <View style={styles.sheetsBox}>
                     <Text style={styles.newCatTitle}>MASTER SYNC BOX (PASTE STOCKS & ETFS HERE)</Text>
                     <TextInput style={styles.sheetsInput} placeholder="Paste stocks closing values here..." multiline value={sheetsInput} onChangeText={setSheetsInput} />
@@ -572,11 +580,6 @@
                 </View>
               </View>
             )}
-            <div style={{margin: '20px 0', textAlign: 'center'}} className="noPrint">
-              <TouchableOpacity onPress={handleExportPDF} style={{...styles.saveBtn, backgroundColor: '#1565c0'}}>
-                <Text style={styles.saveBtnT}>🖨️ EXPORT PORTFOLIO AS PDF</Text>
-              </TouchableOpacity>
-            </div>
             <View style={{ height: 100 }} />
           </ScrollView>
         </SafeAreaView>
